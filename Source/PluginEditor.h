@@ -2,47 +2,50 @@
 
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "PluginProcessor.h"
+#include <functional>
+#include <memory>
 #include <vector>
 
 class DreamMasterLiteEditor : public juce::AudioProcessorEditor,
                               private juce::Timer,
                               private juce::ListBoxModel {
 public:
-    explicit DreamMasterLiteEditor(DreamMasterLiteProcessor&);
-    ~DreamMasterLiteEditor() override;
-    void paint(juce::Graphics&) override;
-    void resized() override;
-
-private:
-    struct BuilderStep {
-        int effectIndex = 0;
-        float amount = 0.22f;
-    };
     struct WorkerReply {
         juce::var payload;
         juce::String error;
         int statusCode = 0;
     };
 
+    explicit DreamMasterLiteEditor(DreamMasterLiteProcessor&);
+    ~DreamMasterLiteEditor() override;
+    void paint(juce::Graphics&) override;
+    void resized() override;
+    void visibilityChanged() override;
+
+private:
+    class EffectCard;
+    struct BuilderStep {
+        int effectIndex = 0;
+        float amount = 0.22f;
+    };
     DreamMasterLiteProcessor& proc;
     juce::Viewport viewport;
-    juce::Component content, builderContent;
-    juce::OwnedArray<juce::ToggleButton> effectButtons;
-    juce::OwnedArray<juce::Slider> amountSliders;
-    juce::OwnedArray<juce::Label> effectLabels;
-    juce::OwnedArray<juce::AudioProcessorValueTreeState::ButtonAttachment> buttonAttachments;
-    juce::OwnedArray<juce::AudioProcessorValueTreeState::SliderAttachment> sliderAttachments;
-    juce::TextButton randomButton{"RANDOM FX"}, extremeButton{"XTRMRND"}, definedButton{"DEFINED VALUES"};
+    juce::Component content, builderContent, loginOverlay;
+    juce::OwnedArray<EffectCard> effectCards;
+    juce::OwnedArray<juce::TextButton> categoryButtons;
+    juce::TextButton randomButton{"RANDOM FX"}, extremeButton{"XTRMRND"}, definedButton{"RANDOM VALUES"};
     juce::TextButton resetButton{"ALL OFF"}, websiteButton{"DREAMDAW.COM"};
     juce::TextButton rackPageButton{"FX RACK"}, builderPageButton{"FX BUILDER"};
-    juce::TextButton loginButton{"LOG IN"}, logoutButton{"LOG OUT"};
+    juce::TextButton loginButton{"LOG IN"}, logoutButton{"LOG OUT"}, themeButton{"THEMES"};
+    juce::TextButton chooseEffectButton{"BROWSE EFFECTS"}, addEffectButton{"ADD TO CHAIN"};
+    juce::TextButton moveUpButton{"UP"}, moveDownButton{"DOWN"}, removeEffectButton{"REMOVE"};
+    juce::TextButton savePresetButton{"SAVE CHAIN"}, loadPresetButton{"LOAD"}, deletePresetButton{"DELETE"};
+    juce::TextButton loginSubmitButton{"SIGN IN"}, loginCancelButton{"NOT NOW"};
     juce::Label title, subtitle, countLabel, onlineLabel, accountLabel, builderLockLabel, builderStatusLabel;
-    juce::TextEditor usernameEditor, passwordEditor, presetNameEditor;
-    juce::ComboBox categoryBox, themeBox, effectChoiceBox, presetChoiceBox;
+    juce::Label loginTitle, loginStatusLabel;
+    juce::TextEditor usernameEditor, passwordEditor, presetNameEditor, searchEditor;
     juce::Slider builderAmountSlider;
-    juce::TextButton addEffectButton{"ADD MODULE"}, moveUpButton{"MOVE UP"}, moveDownButton{"MOVE DOWN"};
-    juce::TextButton removeEffectButton{"REMOVE"}, savePresetButton{"SAVE PRESET"};
-    juce::TextButton loadPresetButton{"LOAD PRESET"}, deletePresetButton{"DELETE PRESET"};
+    juce::ComboBox presetChoiceBox;
     juce::ListBox chainList{"Builder chain", this};
     std::vector<int> visibleEffects;
     std::vector<BuilderStep> builderSteps;
@@ -55,14 +58,24 @@ private:
     bool builderPageActive = false;
     bool authenticated = false;
     bool builderAvailable = false;
+    bool sessionValidationPending = false;
+    bool loginRequestPending = false;
+    bool onlineRequestPending = false;
+    bool heartbeatPending = false;
+    bool showFavoritesOnly = false;
+    bool loginOverlayDismissed = false;
+    int selectedCategory = -1;
+    int selectedBuilderEffect = 0;
+    juce::uint32 lastCountUpdateMs = 0;
     juce::uint32 lastHeartbeatMs = 0;
     juce::uint32 lastOnlinePollMs = 0;
+    juce::uint32 animationFrame = 0;
 
     int getNumRows() override;
     void paintListBoxItem(int row, juce::Graphics&, int width, int height, bool rowIsSelected) override;
     void selectedRowsChanged(int lastRowSelected) override;
     void timerCallback() override;
-    void randomize(int minimum, int maximum, bool definedValues);
+    void randomize(int minimum, int maximum, bool randomAmounts);
     void resetAll();
     void updateVisibleEffects();
     void showPage(bool builder);
@@ -70,20 +83,32 @@ private:
     void updateActiveCount();
     void updatePresetList();
     void addBuilderEffect();
+    void showEffectBrowserMenu();
     void saveBuilderPreset();
     void loadSelectedPreset();
     void deleteSelectedPreset();
     void moveSelectedEffect(int direction);
     void updateBuilderAmount();
+    void showLoginPopup();
+    void dismissLoginPopup();
     void login();
     void logout();
     void validateSession();
     void refreshCapabilities();
     void refreshOnlineCount();
     void sendPresenceHeartbeat();
-    void selectTheme();
+    void selectTheme(int selectedIndex);
+    void showThemeMenu();
     void populateThemes(const juce::var& themes);
     void applyThemePack(const juce::var& themePack);
-    WorkerReply requestWorker(const juce::var* request, bool get = false);
+    void applyPalette();
+    void updateThemeButtonLabel();
+    void requestWorkerAsync(const juce::var* request, bool get,
+                            std::function<void(WorkerReply)> callback);
+    void setCategory(int category);
+    void updateCategoryButtons();
+    void updateBuilderChainList();
+    void updateLoginPreference(bool dismissed);
+    bool readLoginPreference() const;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DreamMasterLiteEditor)
 };

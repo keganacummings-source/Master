@@ -3,6 +3,7 @@
 #include <array>
 #include <vector>
 #include "DspEngine.h"
+#include "EffectFavorites.h"
 #include "FeatureNames.h"
 #include "CustomPresetState.h"
 
@@ -36,7 +37,10 @@ public:
     bool deleteCustomPreset(const juce::String& id);
     bool loadCustomPreset(const juce::String& id);
     void setActiveEffectOrder(const std::vector<dm::PresetStep>& steps);
-    void setDreamShareSession(const juce::String& token, const juce::String& user, const juce::String& theme);
+    std::vector<juce::String> getFavoriteEffectIds();
+    bool isEffectFavorite(const juce::String& effectId);
+    void setEffectFavorite(const juce::String& effectId, bool favorite);
+    bool setDreamShareSession(const juce::String& token, const juce::String& user, const juce::String& theme);
     void clearDreamShareSession();
     bool hasDreamShareSession() const { return dreamShareToken.isNotEmpty(); }
     const juce::String& getDreamShareToken() const { return dreamShareToken; }

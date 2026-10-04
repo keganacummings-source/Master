@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "DreamShareCredentialStore.h"
 #include <algorithm>
 #include <cmath>
 
@@ -13,6 +14,9 @@ DreamMasterLiteProcessor::DreamMasterLiteProcessor()
         amountParameters[static_cast<size_t>(i)] = state.getRawParameterValue("amt" + index);
         processingOrder[static_cast<size_t>(i)].store(i, std::memory_order_relaxed);
     }
+    const auto credential = dm::readDreamShareCredential();
+    if (credential.user.isNotEmpty() && credential.token.isNotEmpty())
+        setDreamShareSession(credential.token, credential.user, {});
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout DreamMasterLiteProcessor::createParams() {
@@ -174,6 +178,29 @@ void DreamMasterLiteProcessor::setActiveEffectOrder(const std::vector<dm::Preset
     setProcessingOrder(steps, true);
 }
 
+std::vector<juce::String> DreamMasterLiteProcessor::getFavoriteEffectIds() {
+    return dm::readFavoriteEffectIds(state.copyState());
+}
+
+bool DreamMasterLiteProcessor::isEffectFavorite(const juce::String& effectId) {
+    const auto favorites = getFavoriteEffectIds();
+    return std::find(favorites.begin(), favorites.end(), effectId) != favorites.end();
+}
+
+void DreamMasterLiteProcessor::setEffectFavorite(const juce::String& effectId, bool favorite) {
+    if (!dm::isKnownEffectId(effectId))
+        return;
+    auto root = state.copyState();
+    auto favorites = dm::readFavoriteEffectIds(root);
+    const auto existing = std::find(favorites.begin(), favorites.end(), effectId);
+    if (favorite && existing == favorites.end())
+        favorites.push_back(effectId);
+    else if (!favorite && existing != favorites.end())
+        favorites.erase(existing);
+    dm::writeFavoriteEffectIds(root, favorites);
+    state.replaceState(root);
+}
+
 void DreamMasterLiteProcessor::setProcessingOrder(const std::vector<dm::PresetStep>& steps, bool persistToState) {
     std::array<int, dm::DspEngine::effectCount> order{};
     std::array<bool, dm::DspEngine::effectCount> seen{};
@@ -205,15 +232,18 @@ void DreamMasterLiteProcessor::setProcessingOrder(const std::vector<dm::PresetSt
     }
 }
 
-void DreamMasterLiteProcessor::setDreamShareSession(const juce::String& token,
-                                                     const juce::String& user,
-                                                     const juce::String& theme) {
+bool DreamMasterLiteProcessor::setDreamShareSession(const juce::String& token,
+                                                    const juce::String& user,
+                                                    const juce::String& theme) {
     dreamShareToken = token;
     dreamShareUser = user;
     dreamShareTheme = theme;
+    return token.isNotEmpty() && user.isNotEmpty()
+        && dm::writeDreamShareCredential({user, token});
 }
 
 void DreamMasterLiteProcessor::clearDreamShareSession() {
+    dm::deleteDreamShareCredential(dreamShareUser);
     dreamShareToken.clear();
     dreamShareUser.clear();
     dreamShareTheme.clear();
