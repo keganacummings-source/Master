@@ -535,45 +535,98 @@ DreamMasterLiteEditor::~DreamMasterLiteEditor() {
 void DreamMasterLiteEditor::paint(juce::Graphics& g) {
     g.fillAll(backgroundColour);
     auto bounds = getLocalBounds().toFloat();
-    juce::ColourGradient glow(highlightColour.withAlpha(0.07f), bounds.getWidth() * 0.18f, 0.0f,
+    juce::ColourGradient glow(highlightColour.withAlpha(0.055f), bounds.getWidth() * 0.18f, 0.0f,
                               juce::Colours::transparentBlack, bounds.getWidth() * 0.62f, bounds.getHeight(), false);
     g.setGradientFill(glow);
     g.fillRect(bounds);
-    for (int x = 12; x < getWidth(); x += 31) {
-        for (int y = 7 + ((x * 13) % 43); y < getHeight(); y += 23 + ((x / 31) % 4) * 7) {
-            const int glyph = (x * 7 + y * 3) % 4;
-            g.setColour(accentColour.withAlpha(glyph == 0 ? 0.14f : 0.045f));
-            g.setFont(juce::Font(juce::FontOptions(10.0f)));
-            g.drawText(glyph == 0 ? "1" : (glyph == 1 ? "+" : (glyph == 2 ? ":" : "0")),
-                       x, y, 9, 11, juce::Justification::centred);
-        }
-    }
 
     const auto theme = normalisedThemeId(currentThemePack);
+    const bool warmTheme = theme == "amber" || theme == "bloodmoon" || theme == "cherry"
+        || theme == "cinder" || theme == "copper" || theme == "ember" || theme == "honey"
+        || theme == "rust" || theme == "sulfur" || theme == "wine";
+    const bool coolTheme = theme == "abyss" || theme == "ice" || theme == "lagoon"
+        || theme == "neon" || theme == "void" || theme == "violet";
+    const bool organicTheme = theme == "mint" || theme == "moss" || theme == "olive"
+        || theme == "pine" || theme == "goonr";
+    const int animationHeight = juce::jmax(1, getHeight());
+    const int animationWidth = juce::jmax(1, getWidth());
+    const float motion = reducedMotion ? 0.0f : static_cast<float>(animationFrame) * 0.012f;
+
     if (theme == "goonr") {
-        g.setFont(juce::Font(juce::FontOptions(11.0f, juce::Font::bold)));
-        for (int x = 8; x < getWidth(); x += 21) {
-            const int phase = (x * 29 + static_cast<int>(animationFrame * 3u)) % juce::jmax(1, getHeight() + 90);
-            const int y = phase - 42;
-            g.setColour(accentColour.withAlpha(0.22f));
-            g.drawText("0", x, y, 12, 12, juce::Justification::centred);
-            g.setColour(highlightColour.withAlpha(0.14f));
-            g.drawText("1", x, y - 24, 12, 12, juce::Justification::centred);
+        g.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
+        for (int x = 18, column = 0; x < getWidth(); x += 64, ++column) {
+            const int phase = (column * 47 + static_cast<int>(animationFrame)) % (animationHeight + 72);
+            const int y = phase - 36;
+            g.setColour(accentColour.withAlpha(0.13f));
+            g.drawText("0", x, y, 11, 11, juce::Justification::centred);
+            g.setColour(highlightColour.withAlpha(0.085f));
+            g.drawText("1", x, y - 21, 11, 11, juce::Justification::centred);
+            g.setColour(accentColour.withAlpha(0.055f));
+            g.drawText("0", x, y - 42, 11, 11, juce::Justification::centred);
         }
     } else if (theme == "trippah") {
-        for (int i = 0; i < 28; ++i) {
-            const float x = static_cast<float>((i * 83 + 19) % juce::jmax(1, getWidth()));
-            const float drift = std::sin(static_cast<float>(animationFrame) * 0.025f + i * 1.7f) * 13.0f;
-            const float y = static_cast<float>((i * 47 + static_cast<int>(animationFrame * (1u + static_cast<uint32_t>(i % 3))) * 2)
-                                               % juce::jmax(1, getHeight()));
-            const float diameter = 2.0f + static_cast<float>(i % 3);
-            g.setColour((i % 4 == 0 ? highlightColour : accentColour).withAlpha(0.12f));
-            g.fillEllipse(x + drift, y, diameter, diameter);
+        for (int i = 0; i < 10; ++i) {
+            const float x = static_cast<float>((i * 109 + 37) % animationWidth)
+                + std::sin(motion + i * 1.4f) * 9.0f;
+            const float y = static_cast<float>((i * 67 + static_cast<int>(animationFrame * (1u + static_cast<uint32_t>(i % 2))) * 2)
+                                               % (animationHeight + 100)) - 50.0f;
+            const float size = 5.0f + static_cast<float>(i % 3);
+            g.setColour((i % 2 == 0 ? accentColour : highlightColour).withAlpha(0.17f));
+            if (i % 2 == 0) {
+                // Small mushroom caps and stems are the only non-pill floating motif.
+                g.fillRoundedRectangle(x + size * 0.36f, y + size * 0.66f, size * 0.3f, size * 0.9f, 1.4f);
+                g.fillEllipse(x, y, size, size * 0.68f);
+                g.setColour(textColour.withAlpha(0.24f));
+                g.fillEllipse(x + size * 0.25f, y + size * 0.2f, size * 0.12f, size * 0.12f);
+            } else {
+                juce::Rectangle<float> pill(x, y, size * 1.65f, size * 0.68f);
+                g.fillRoundedRectangle(pill, size * 0.34f);
+                g.setColour(backgroundColour.withAlpha(0.42f));
+                g.drawLine(pill.getCentreX(), pill.getY() + 1.0f, pill.getCentreX(),
+                           pill.getBottom() - 1.0f, 0.8f);
+            }
+        }
+    } else {
+        // Keep the ambient layer deliberately small: ten theme-coloured primitives,
+        // animated with position math and no per-frame allocation or child components.
+        for (int i = 0; i < 10; ++i) {
+            const float baseX = static_cast<float>((i * 97 + 29) % animationWidth);
+            const float x = baseX + std::sin(motion + i * 1.31f) * (warmTheme ? 7.0f : 11.0f);
+            const float travel = reducedMotion ? 0.0f : std::fmod(motion * (18.0f + (i % 4) * 5.0f), 72.0f);
+            const float y = static_cast<float>((i * 59 + 17) % animationHeight) + travel - 36.0f;
+            const float size = 4.0f + static_cast<float>(i % 4);
+            const auto colour = (i % 3 == 0 ? highlightColour : accentColour)
+                .withAlpha(organicTheme ? 0.095f : 0.075f);
+            g.setColour(colour);
+
+            if (coolTheme) {
+                g.drawEllipse(x, y, size * 1.55f, size * 1.55f, 1.0f);
+                g.fillEllipse(x + size * 0.58f, y + size * 0.58f, size * 0.4f, size * 0.4f);
+            } else if (organicTheme) {
+                juce::Path leaf;
+                leaf.startNewSubPath(x, y + size);
+                leaf.quadraticTo(x + size * 0.9f, y - size * 0.2f, x + size * 1.6f, y + size * 0.45f);
+                leaf.quadraticTo(x + size * 0.9f, y + size * 1.5f, x, y + size);
+                g.strokePath(leaf, juce::PathStrokeType(1.0f));
+                g.drawLine(x + 1.0f, y + size * 0.9f, x + size * 1.4f, y + size * 0.42f, 0.7f);
+            } else if (warmTheme) {
+                juce::Path ember;
+                ember.startNewSubPath(x + size * 0.5f, y);
+                ember.lineTo(x + size, y + size * 0.5f);
+                ember.lineTo(x + size * 0.5f, y + size);
+                ember.lineTo(x, y + size * 0.5f);
+                ember.closeSubPath();
+                g.strokePath(ember, juce::PathStrokeType(1.0f));
+            } else {
+                g.drawEllipse(x, y, size, size, 1.0f);
+                g.drawLine(x + size * 0.5f, y - 1.5f, x + size * 0.5f, y + size + 1.5f, 0.8f);
+                g.drawLine(x - 1.5f, y + size * 0.5f, x + size + 1.5f, y + size * 0.5f, 0.8f);
+            }
         }
     }
 
-    g.setColour(juce::Colours::black.withAlpha(0.18f));
-    for (int y = 0; y < getHeight(); y += 4)
+    g.setColour(juce::Colours::black.withAlpha(0.10f));
+    for (int y = 0; y < getHeight(); y += 6)
         g.fillRect(0, y, getWidth(), 1);
     const float cy = 27.0f, eyeW = 34.0f, eyeH = 22.0f, mid = getWidth() * 0.5f;
     for (int side : {-1, 1}) {
@@ -695,11 +748,7 @@ void DreamMasterLiteEditor::resized() {
 }
 
 void DreamMasterLiteEditor::visibilityChanged() {
-    if (isShowing() && (normalisedThemeId(currentThemePack) == "goonr"
-                        || normalisedThemeId(currentThemePack) == "trippah"))
-        startTimerHz(30);
-    else
-        startTimer(1000);
+    updateAnimationTimer();
 }
 
 void DreamMasterLiteEditor::randomize(int minimum, int maximum, bool randomAmounts) {
@@ -1298,11 +1347,7 @@ void DreamMasterLiteEditor::applyThemePack(const juce::var& themePack) {
     }
     applyPalette();
     updateThemeButtonLabel();
-    if (isShowing() && (normalisedThemeId(currentThemePack) == "goonr"
-                        || normalisedThemeId(currentThemePack) == "trippah"))
-        startTimerHz(30);
-    else
-        startTimer(1000);
+    updateAnimationTimer();
     repaint();
 }
 
@@ -1352,9 +1397,22 @@ void DreamMasterLiteEditor::showThemeMenu() {
     juce::PopupMenu menu;
     for (int i = 0; i < themeIds.size(); ++i)
         menu.addItem(i + 1, themeNames[i], true, themeIds[i] == proc.getDreamShareTheme());
+    if (!themeIds.isEmpty())
+        menu.addSeparator();
+    const int reducedMotionItem = themeIds.size() + 1;
+    menu.addItem(reducedMotionItem, "Reduce background motion", true, reducedMotion);
     juce::Component::SafePointer<DreamMasterLiteEditor> safeThis(this);
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&themeButton), [safeThis](int result) {
-        if (safeThis == nullptr || result <= 0 || result > safeThis->themeIds.size())
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&themeButton),
+                       [safeThis, reducedMotionItem](int result) {
+        if (safeThis == nullptr || result <= 0)
+            return;
+        if (result == reducedMotionItem) {
+            safeThis->reducedMotion = !safeThis->reducedMotion;
+            safeThis->updateAnimationTimer();
+            safeThis->repaint();
+            return;
+        }
+        if (result > safeThis->themeIds.size())
             return;
         safeThis->selectTheme(result - 1);
     });
@@ -1397,10 +1455,12 @@ void DreamMasterLiteEditor::timerCallback() {
         return;
     }
     const auto now = juce::Time::getMillisecondCounter();
-    animationFrame = now / 33u;
     const auto theme = normalisedThemeId(currentThemePack);
-    if (theme == "goonr" || theme == "trippah")
+    const bool animatedTheme = theme == "goonr" || theme == "trippah";
+    if (animatedTheme && !reducedMotion) {
+        animationFrame = now / 66u;
         repaint();
+    }
     if (now - lastCountUpdateMs >= 1000u) {
         updateActiveCount();
         lastCountUpdateMs = now;
@@ -1411,6 +1471,14 @@ void DreamMasterLiteEditor::timerCallback() {
     }
     if (authenticated && !sessionValidationPending && !heartbeatPending && now - lastHeartbeatMs >= 25000u)
         sendPresenceHeartbeat();
+}
+
+void DreamMasterLiteEditor::updateAnimationTimer() {
+    const auto theme = normalisedThemeId(currentThemePack);
+    if (isShowing() && !reducedMotion && (theme == "goonr" || theme == "trippah"))
+        startTimerHz(15);
+    else
+        startTimer(1000);
 }
 
 void DreamMasterLiteEditor::updateLoginPreference(bool dismissed) {

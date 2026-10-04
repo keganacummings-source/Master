@@ -71,6 +71,7 @@ private:
     bool heartbeatPending = false;
     bool showFavoritesOnly = false;
     bool loginOverlayDismissed = false;
+    bool reducedMotion = false;
     int selectedCategory = -1;
     int selectedBuilderEffect = 0;
     float pendingBuilderAmount = 0.22f;
@@ -110,6 +111,7 @@ private:
     void applyThemePack(const juce::var& themePack);
     void applyPalette();
     void updateThemeButtonLabel();
+    void updateAnimationTimer();
     void requestWorkerAsync(const juce::var* request, bool get,
                             std::function<void(WorkerReply)> callback);
     void setCategory(int category);
