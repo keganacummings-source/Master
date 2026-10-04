@@ -30,7 +30,7 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
     viewport.setViewedComponent(&content, false); viewport.setScrollBarsShown(true, true);
     viewport.setColour(juce::ScrollBar::thumbColourId, green.withAlpha(0.8f)); viewport.setColour(juce::ScrollBar::trackColourId, juce::Colour(0xff061009)); addAndMakeVisible(viewport);
     for (int i = 0; i < 200; ++i) {
-        const auto name = juce::String(dm::featureNames[(size_t)i]);
+        const auto name = juce::String(dm::featureNames[static_cast<size_t>(i)].data());
         auto* label = effectLabels.add(new juce::Label({}, name));
         label->setColour(juce::Label::textColourId, text); label->setFont(juce::Font(12.0f, juce::Font::bold));
         label->setJustificationType(juce::Justification::centredLeft); content.addAndMakeVisible(label);

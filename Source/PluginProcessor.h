@@ -1,7 +1,7 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <array>
-#include <vector>
+#include "DspEngine.h"
 #include "FeatureNames.h"
 
 class DreamMasterLiteProcessor : public juce::AudioProcessor {
@@ -30,10 +30,8 @@ public:
     juce::AudioProcessorValueTreeState state;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParams();
 private:
-    double currentSampleRate = 44100.0;
-    std::array<std::array<float, 2>, 200> filterState{};
-    std::array<std::array<float, 2>, 200> previousState{};
-    std::array<std::vector<std::array<float, 2>>, 200> delayBuffers;
-    std::array<size_t, 200> delayPositions{};
+    dm::DspEngine engine;
+    std::array<std::atomic<float>*, 200> enabledParameters{};
+    std::array<std::atomic<float>*, 200> amountParameters{};
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DreamMasterLiteProcessor)
 };

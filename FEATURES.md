@@ -1,10 +1,12 @@
 # DreamMasterLite effect rack
 
-The rack uses the 200 unique effect IDs and 200 unique display names defined in the supplied INSOMNIA.html FX_DEFS list. No display names or IDs are duplicated. Each effect has an enable control and an amount control, with host automation and saved state.
+The rack uses 200 unique effect IDs and display names based on the supplied INSOMNIA.html FX_DEFS list. No native IDs or display names are duplicated. Each effect has an enable control and an amount control, with host automation and saved state. Existing host parameter IDs (`fx0`–`fx199` and `amt0`–`amt199`) are preserved.
 
 The Random FX Pick button first disables all effects, then enables a random set of 1–10 distinct effects. It therefore cannot leave more than 10 effects enabled after a random pick. All Off disables the entire rack.
 
-The native DSP implements a set of effect families (filters, saturation, limiting, delay-style echo, stereo width, modulation, lo-fi, gating, tone shaping, gain and color) and routes each named effect to a family using its ID, with deterministic per-effect variations. This is a native approximation, not a verified one-to-one port of every Web Audio algorithm in INSOMNIA.html. For clean mastering, start with all effects off and add subtle amounts one at a time. The final sample-peak ceiling is a safety guard, not a true-peak limiter or loudness mastering processor.
+Every slot is explicitly assigned a native DSP recipe; there is no substring classifier or hash-derived routing. The recipes reuse stable processing primitives (filters, saturation, dynamics, modulated delay, all-pass phasing, feedback delay, reverb combs, stereo imaging, and rhythmic gating) with deliberately varied timing, tone, depth, and response. Enable/amount ramps, bounded feedback, DC blocking, finite-value guards, and a linked sample-peak limiter improve behavior with arbitrary or stacked inputs. The limiter is not a true-peak limiter or loudness mastering processor.
+
+The CTest target `DreamMasterDSPTests` renders all 200 effects and checks unique IDs/names, non-silent and pairwise-distinct outputs, selected modulation behavior, mono/stereo handling, finite output, and safety bounds at 44.1 and 96 kHz. Automated DSP checks do not substitute for listening in a DAW.
 
 ## Effect names
 
@@ -164,9 +166,9 @@ The native DSP implements a set of effect families (filters, saturation, limitin
 154. Wow II
 155. Flutter
 156. 16th Gate
-157. Reverse Bloom
-158. Oct Down
-159. Oct Up
+157. Shimmer Bloom
+158. Low Ring Mod
+159. High Ring Mod
 160. Resonant
 161. Smear
 162. Dust
