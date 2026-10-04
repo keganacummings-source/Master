@@ -5,7 +5,7 @@ A JUCE 8 VST3 effect rack inspired by the supplied INSOMNIA HTML reference, with
 ## Interface updates
 
 - Each effect is displayed in its own bordered card.
-- Each card has an enable switch, a favorite star, and three parameter controls with family-appropriate labels.
+- Each card has an enable switch, an ASCII `FAV` toggle, and three parameter controls with family-appropriate labels. Favorited effects move to the top and sort alphabetically by name; other effects keep their original order.
 - Mouse-wheel scrolling over sliders is disabled so scrolling the long rack does not change parameter values.
 - Favorite stars are stored in the user's local DreamMasterLite settings file and persist across separate plugin instances and FL Studio restarts on that computer. They are not intended to sync between computers.
 - Random FX Pick enables a randomly chosen 1–10 distinct effects and clears the other enable switches. All Off disables all effects.

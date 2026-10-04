@@ -1,10 +1,48 @@
 #include "PluginEditor.h"
 #include <algorithm>
+#include <numeric>
 #include <vector>
 #include <random>
 
 namespace {
 const juce::Colour bg(0xff030805), panel(0xff0b120d), acid(0xffc8ff33), green(0xff65ff83), text(0xffd8ffe0), dim(0xffb5a18a), border(0xff69412e);
+juce::PropertiesFile& getFavoritesFile() {
+    static juce::PropertiesFile file([] {
+        juce::PropertiesFile::Options options;
+        options.applicationName = "DreamMasterLite";
+        options.filenameSuffix = "settings";
+        options.folderName = "Dreamdaw";
+        options.osxLibrarySubFolder = "Application Support";
+        options.commonToAllUsers = false;
+        options.ignoreCaseOfKeyNames = true;
+        options.millisecondsBeforeSaving = -1;
+        return options;
+    }());
+    return file;
+}
+juce::String getFeatureName(int index) {
+    const auto name = dm::featureNames[(size_t)index];
+    return juce::String::fromUTF8(name.data(), static_cast<int>(name.size()));
+}
+juce::String getFavoriteKey(int index) {
+    const auto id = dm::featureIds[(size_t)index];
+    return "favorite_" + juce::String::fromUTF8(id.data(), static_cast<int>(id.size()));
+}
+bool loadFavorite(int index) {
+    auto& file = getFavoritesFile();
+    const auto key = getFavoriteKey(index);
+    if (file.containsKey(key))
+        return file.getBoolValue(key, false);
+
+    const auto legacyKey = "favorite_" + juce::String(index);
+    const bool favorite = file.getBoolValue(legacyKey, false);
+    if (favorite) {
+        file.setValue(key, true);
+        if (!file.saveIfNeeded())
+            juce::Logger::writeToLog("DreamMasterLite: could not migrate saved favorites to the current settings file.");
+    }
+    return favorite;
+}
 void styleButton(juce::TextButton& button, juce::Colour fill = panel, juce::Colour ink = green) {
     button.setColour(juce::TextButton::buttonColourId, fill);
     button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xff153c20));
@@ -38,19 +76,13 @@ void getControlNames(const std::string& id, juce::String& a, juce::String& b, ju
 
 DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor)
     : AudioProcessorEditor(processor), proc(processor) {
-    juce::PropertiesFile::Options options;
-    options.applicationName = "DreamMasterLite"; options.filenameSuffix = "settings";
-    options.folderName = "Dreamdaw"; options.osxLibrarySubFolder = "Application Support";
-    options.commonToAllUsers = false; options.ignoreCaseOfKeyNames = true;
-    favoritesFile = std::make_unique<juce::PropertiesFile>(options);
-
     title.setText("DREAMMASTERLITE", juce::dontSendNotification);
     title.setFont(juce::Font(27.0f, juce::Font::bold)); title.setColour(juce::Label::textColourId, green);
     title.setJustificationType(juce::Justification::centred); addAndMakeVisible(title);
     subtitle.setText("INSOMNIA FX RACK  /  MASTER POLISH  /  200 DISTINCT NAMED MODULES", juce::dontSendNotification);
     subtitle.setColour(juce::Label::textColourId, dim); subtitle.setFont(juce::Font(10.5f));
     subtitle.setJustificationType(juce::Justification::centred); addAndMakeVisible(subtitle);
-    countLabel.setText("0 ACTIVE · RANDOM PICK MAX 10", juce::dontSendNotification);
+    countLabel.setText("0 ACTIVE - RANDOM PICK MAX 10", juce::dontSendNotification);
     countLabel.setColour(juce::Label::textColourId, acid); countLabel.setFont(juce::Font(10.5f, juce::Font::bold)); addAndMakeVisible(countLabel);
     styleButton(randomButton, juce::Colour(0xff102b17), green); styleButton(resetButton, juce::Colour(0xff20130e), text); styleButton(websiteButton, juce::Colour(0xff102b17), acid);
     for (auto* b : { &randomButton, &resetButton, &websiteButton }) addAndMakeVisible(*b);
@@ -61,8 +93,9 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
     viewport.setColour(juce::ScrollBar::thumbColourId, green.withAlpha(0.8f)); viewport.setColour(juce::ScrollBar::trackColourId, juce::Colour(0xff061009)); addAndMakeVisible(viewport);
 
     for (int i = 0; i < 200; ++i) {
+        favoriteStates[(size_t)i] = loadFavorite(i);
         auto* card = effectCards.add(new EffectCard()); content.addAndMakeVisible(card);
-        const auto name = juce::String::fromUTF8(dm::featureNames[(size_t)i].data(), static_cast<int>(dm::featureNames[(size_t)i].size()));
+        const auto name = getFeatureName(i);
         auto* label = effectLabels.add(new juce::Label({}, name));
         label->setColour(juce::Label::textColourId, text); label->setFont(juce::Font(12.0f, juce::Font::bold));
         label->setJustificationType(juce::Justification::centredLeft); content.addAndMakeVisible(label);
@@ -70,12 +103,23 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
         button->setClickingTogglesState(true); button->setColour(juce::ToggleButton::textColourId, green);
         button->setColour(juce::ToggleButton::tickColourId, acid); content.addAndMakeVisible(button);
         buttonAttachments.add(new juce::AudioProcessorValueTreeState::ButtonAttachment(proc.state, "fx" + juce::String(i), *button));
-        auto* favorite = favoriteButtons.add(new juce::ToggleButton("☆"));
-        favorite->setClickingTogglesState(true); favorite->setColour(juce::ToggleButton::textColourId, acid);
-        favorite->setTooltip("Favorite this effect. Favorites persist across plugin instances on this computer.");
-        const bool isFav = favoritesFile->getBoolValue("favorite_" + juce::String(i), false);
-        favorite->setToggleState(isFav, juce::dontSendNotification); favorite->setButtonText(isFav ? "★" : "☆");
-        favorite->onClick = [this, favorite, i] { const bool on = favorite->getToggleState(); favorite->setButtonText(on ? "★" : "☆"); saveFavorite(i, on); };
+        auto* favorite = favoriteButtons.add(new juce::TextButton("FAV"));
+        favorite->setClickingTogglesState(true);
+        favorite->setColour(juce::TextButton::buttonColourId, panel);
+        favorite->setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xff33420d));
+        favorite->setColour(juce::TextButton::textColourOffId, dim);
+        favorite->setColour(juce::TextButton::textColourOnId, acid);
+        favorite->setTitle("Favorite " + name);
+        favorite->setToggleState(favoriteStates[(size_t)i], juce::dontSendNotification);
+        favorite->setTooltip("Favorite this effect. Favorites are saved on this computer.");
+        favorite->onClick = [this, favorite, i] {
+            const bool on = favorite->getToggleState();
+            if (!saveFavorite(i, on))
+                favorite->setTooltip("Favorite is active for this session, but could not be saved to disk.");
+            else
+                favorite->setTooltip("Favorite this effect. Favorites are saved on this computer.");
+            resized();
+        };
         content.addAndMakeVisible(favorite);
 
         juce::String c1, c2, c3; getControlNames(std::string(dm::featureIds[(size_t)i]), c1, c2, c3);
@@ -95,8 +139,17 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
     }
     setResizable(true, true); setResizeLimits(650, 520, 1600, 1200); setSize(1080, 820);
 }
-DreamMasterLiteEditor::~DreamMasterLiteEditor() { viewport.setViewedComponent(nullptr, false); if (favoritesFile) favoritesFile->save(); }
-void DreamMasterLiteEditor::saveFavorite(int index, bool enabled) { if (favoritesFile) { favoritesFile->setValue("favorite_" + juce::String(index), enabled); favoritesFile->saveIfNeeded(); } }
+DreamMasterLiteEditor::~DreamMasterLiteEditor() { viewport.setViewedComponent(nullptr, false); }
+bool DreamMasterLiteEditor::saveFavorite(int index, bool enabled) {
+    favoriteStates[(size_t)index] = enabled;
+    auto& file = getFavoritesFile();
+    file.setValue(getFavoriteKey(index), enabled);
+    if (file.saveIfNeeded())
+        return true;
+
+    juce::Logger::writeToLog("DreamMasterLite: could not save favorites to " + file.getFile().getFullPathName());
+    return false;
+}
 
 void DreamMasterLiteEditor::paint(juce::Graphics& g) {
     g.fillAll(bg); auto bounds = getLocalBounds().toFloat();
@@ -120,8 +173,23 @@ void DreamMasterLiteEditor::resized() {
     const int columns = getWidth() >= 1050 ? 4 : 3, gap = 9, cardHeight = 116;
     const int cardWidth = juce::jmax(174, (r.getWidth() - gap * (columns - 1)) / columns);
     const int rows = (200 + columns - 1) / columns; content.setSize(columns * cardWidth + (columns - 1) * gap, rows * (cardHeight + gap));
-    for (int i = 0; i < 200; ++i) {
-        const int col = i % columns, row = i / columns, x = col * (cardWidth + gap), y = row * (cardHeight + gap);
+    std::array<int, 200> displayOrder;
+    std::iota(displayOrder.begin(), displayOrder.end(), 0);
+    std::sort(displayOrder.begin(), displayOrder.end(), [this](int left, int right) {
+        const bool leftIsFavorite = favoriteStates[(size_t)left];
+        const bool rightIsFavorite = favoriteStates[(size_t)right];
+        if (leftIsFavorite != rightIsFavorite)
+            return leftIsFavorite;
+        if (leftIsFavorite) {
+            const int nameOrder = getFeatureName(left).compareIgnoreCase(getFeatureName(right));
+            if (nameOrder != 0)
+                return nameOrder < 0;
+        }
+        return left < right;
+    });
+    for (int slot = 0; slot < 200; ++slot) {
+        const int i = displayOrder[(size_t)slot];
+        const int col = slot % columns, row = slot / columns, x = col * (cardWidth + gap), y = row * (cardHeight + gap);
         effectCards[i]->setBounds(x, y, cardWidth, cardHeight);
         effectLabels[i]->setBounds(x + 7, y + 3, cardWidth - 110, 22);
         effectButtons[i]->setBounds(x + cardWidth - 88, y + 2, 48, 21);
@@ -138,10 +206,10 @@ void DreamMasterLiteEditor::randomize() {
     const int count = 1 + rng.nextInt(10);
     for (int i = 0; i < 200; ++i) if (auto* p = proc.state.getParameter("fx" + juce::String(i))) p->setValueNotifyingHost(0.0f);
     for (int i = 0; i < count; ++i) if (auto* p = proc.state.getParameter("fx" + juce::String(indices[(size_t)i]))) p->setValueNotifyingHost(1.0f);
-    countLabel.setText(juce::String(count) + " ACTIVE · RANDOM PICK MAX 10", juce::dontSendNotification);
+    countLabel.setText(juce::String(count) + " ACTIVE - RANDOM PICK MAX 10", juce::dontSendNotification);
 }
 void DreamMasterLiteEditor::resetAll() {
     for (int i = 0; i < 200; ++i) if (auto* p = proc.state.getParameter("fx" + juce::String(i))) p->setValueNotifyingHost(0.0f);
-    countLabel.setText("0 ACTIVE · RANDOM PICK MAX 10", juce::dontSendNotification);
+    countLabel.setText("0 ACTIVE - RANDOM PICK MAX 10", juce::dontSendNotification);
 }
 juce::AudioProcessorEditor* DreamMasterLiteProcessor::createEditor() { return new DreamMasterLiteEditor(*this); }
