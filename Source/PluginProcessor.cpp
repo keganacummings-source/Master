@@ -35,8 +35,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout DreamMasterLiteProcessor::cr
     juce::AudioProcessorValueTreeState::ParameterLayout params;
     for (int i = 0; i < 200; ++i) {
         const auto idx = juce::String(i);
-        params.add(std::make_unique<juce::AudioParameterBool>("fx" + idx, juce::String(dm::featureNames[(size_t)i]), false));
-        params.add(std::make_unique<juce::AudioParameterFloat>("amt" + idx, juce::String(dm::featureNames[(size_t)i]) + " Amount", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.22f));
+        params.add(std::make_unique<juce::AudioParameterBool>("fx" + idx, juce::String(dm::featureNames[(size_t)i].data()), false));
+        params.add(std::make_unique<juce::AudioParameterFloat>("amt" + idx, juce::String(dm::featureNames[(size_t)i].data()) + " Amount", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.22f));
     }
     return params;
 }
@@ -45,7 +45,7 @@ void DreamMasterLiteProcessor::prepareToPlay(double sampleRate, int) {
     currentSampleRate = sampleRate > 1000.0 ? sampleRate : 44100.0;
     filterState = {}; previousState = {}; delayPositions = {};
     for (int i = 0; i < 200; ++i) {
-        const auto id = std::string(dm::featureIds[(size_t)i]);
+        const auto id = std::string(dm::featureIds[(size_t)i].data(), dm::featureIds[(size_t)i].size());
         const auto type = classify(id);
         if (type == FxType::Delay) delayBuffers[(size_t)i].assign((size_t)juce::jlimit(2048, 24000, (int)(currentSampleRate * 0.24)), {0.0f, 0.0f});
         else delayBuffers[(size_t)i].clear();
@@ -68,7 +68,7 @@ void DreamMasterLiteProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         auto* amountParam = state.getRawParameterValue("amt" + juce::String(i));
         if (enabled == nullptr || amountParam == nullptr || enabled->load() < 0.5f) continue;
         const float amount = juce::jlimit(0.0f, 1.0f, amountParam->load());
-        const auto id = std::string(dm::featureIds[(size_t)i]);
+        const auto id = std::string(dm::featureIds[(size_t)i].data(), dm::featureIds[(size_t)i].size());
         const FxType type = classify(id);
         const float unique = float((std::hash<std::string>{}(id) % 97) + 3) / 100.0f;
         auto& st = filterState[(size_t)i];

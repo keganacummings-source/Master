@@ -12,7 +12,7 @@ JUCE 8 VST3 effect-rack project inspired by the supplied INSOMNIA.html.
 - A conservative output peak ceiling prevents digital overs; this is not a loudness mastering or true-peak limiter.
 
 ## Build
-Open this project in GitHub and let `.github/workflows/build.yml` run, or configure with CMake and a C++17 compiler. JUCE 8.0.6 is fetched by CMake. The workflow publishes platform build artifacts.
+Open this project in GitHub and let `.github/workflows/main.yml` run, or configure with CMake and a C++17 compiler. JUCE 8.0.6 is fetched by CMake. The workflow publishes platform build artifacts.
 
 ## Important audio note
 The 200 names and module states are distinct. The native engine implements multiple DSP families with per-effect variations, but it is not a verified one-to-one native port of all 200 browser-side Web Audio algorithms. Start with effects disabled, enable only what you need, and use subtle amounts on a master bus. Build and audition in your DAW before relying on it for final delivery.
