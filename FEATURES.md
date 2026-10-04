@@ -1,0 +1,210 @@
+# DreamMasterLite effect rack
+
+The rack uses the 200 unique effect IDs and 200 unique display names defined in the supplied INSOMNIA.html FX_DEFS list. No display names or IDs are duplicated. Each effect has an enable control and an amount control, with host automation and saved state.
+
+The Random FX Pick button first disables all effects, then enables a random set of 1–10 distinct effects. It therefore cannot leave more than 10 effects enabled after a random pick. All Off disables the entire rack.
+
+The native DSP implements a set of effect families (filters, saturation, limiting, delay-style echo, stereo width, modulation, lo-fi, gating, tone shaping, gain and color) and routes each named effect to a family using its ID, with deterministic per-effect variations. This is a native approximation, not a verified one-to-one port of every Web Audio algorithm in INSOMNIA.html. For clean mastering, start with all effects off and add subtle amounts one at a time. The final sample-peak ceiling is a safety guard, not a true-peak limiter or loudness mastering processor.
+
+## Effect names
+
+001. Drive
+002. Doubler / Chorus
+003. Delay
+004. Reverb
+005. Stereo Width
+006. High-Pass
+007. Low-Pass
+008. Tremolo / Chop
+009. Auto-Pan
+010. Flanger
+011. Phaser
+012. Bitcrush / Lofi
+013. Vibrato
+014. Slapback
+015. Telephone
+016. Tape / Wow
+017. Stutter / Gate
+018. Formant Body
+019. Short Plate
+020. Interval Comb
+021. Mid Glue
+022. Warmth
+023. Predelay
+024. Fade / Shape
+025. Grain Scramble
+026. Melt
+027. Worm / Wriggle
+028. Rot
+029. Infection Echo
+030. Crawl Trail
+031. Star Air
+032. Devil Grit
+033. Moon Haze
+034. Tower Bite
+035. Vortex Orbit
+036. Seance Choir
+037. Ripple Spray
+038. Halo Bloom
+039. Euclid Pulse
+040. Fog Bank
+041. Needle Wow
+042. Draw Ink
+043. Loud / Limiter
+044. Soft Clip
+045. Tilt EQ
+046. Bass Shelf
+047. Air Shelf
+048. Presence
+049. Mud Cut
+050. Box Cut
+051. Hum Notch
+052. Haas Width
+053. Mono Bass
+054. Short Room
+055. Hall
+056. Exciter
+057. Warmth 2
+058. Satin Roll
+059. Polish Pump
+060. Shimmer
+061. Bus Chorus
+062. Focus
+063. Trim
+064. Balance
+065. Sheen
+066. Soft Sat
+067. Edge
+068. Bloom
+069. Swirl Filter
+070. Ping
+071. Drift
+072. Snap
+073. Body
+074. Air Lift
+075. Sub Boost
+076. Notch Sweep
+077. Ring Light
+078. Deep Phase
+079. Long Echo
+080. Freeze
+081. Vinyl
+082. Radio
+083. Underwater
+084. Glass
+085. Pulse Amp
+086. Swirl Pan
+087. Cream
+088. Fog Bank 2
+089. Glue II
+090. Ceiling
+091. Bus Drive
+092. Air Max
+093. Low End
+094. Mid Carve
+095. Widen II
+096. Mono 80
+097. Polish LP
+098. Polish HP
+099. Sparkle
+100. Velvet
+101. Punch
+102. Silk
+103. Mass
+104. Polish Verb
+105. Image
+106. Final Loud
+107. Curve
+108. Clean
+109. Stage
+110. Wire
+111. Parallel Glue
+112. Shelf Master
+113. Final Trim
+114. Sub Lift
+115. Presence Peak
+116. Mud Notch
+117. Box Notch
+118. Night Air
+119. Sleep Gate
+120. Red Room
+121. Acid Bite
+122. Ghost Delay
+123. Bone EQ
+124. Marrow
+125. Cinder
+126. Ash Shelf
+127. Cobalt
+128. Ember
+129. Lilac Halo
+130. Pine Room
+131. Ink Drip
+132. Needle Flutter
+133. Halo II
+134. Ripple II
+135. Orbit
+136. Choir Bed
+137. Pluck Slap
+138. Drum Glue
+139. Bass Focus
+140. Hat Air
+141. Snap Sat
+142. Room Tap
+143. Dark Hall
+144. Bright Plate
+145. Slow Flange
+146. Fast Trem
+147. Wide Chorus
+148. Tight Comp
+149. Open Comp
+150. De-ess
+151. Low Mono
+152. Side Air
+153. Crush II
+154. Wow II
+155. Flutter
+156. 16th Gate
+157. Reverse Bloom
+158. Oct Down
+159. Oct Up
+160. Resonant
+161. Smear
+162. Dust
+163. Tape II
+164. Limiter II
+165. Clip II
+166. Air II
+167. Width III
+168. Hall II
+169. Room II
+170. Delay II
+171. Phaser II
+172. Chorus II
+173. Vibrato II
+174. Pan II
+175. Trem II
+176. Low-Pass II
+177. High-Pass II
+178. Drive II
+179. Grit II
+180. Haze II
+181. Rot II
+182. Melt II
+183. Worm II
+184. Infection II
+185. Crawl II
+186. Star II
+187. Tower II
+188. Vortex II
+189. Seance II
+190. Fog II
+191. Ink II
+192. Needle III
+193. Halo III
+194. Pulse II
+195. Ripple III
+196. Orbit II
+197. Choir II
+198. Plate II
+199. Comb II
+200. Formant II

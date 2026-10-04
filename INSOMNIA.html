@@ -1,0 +1,2862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+  <title>INSOMNIA</title>
+  <script src="../Themes/sleepwell-theme.js"></script>
+  <script src="../Themes/sleepwell-suite.js"></script>
+  <style>
+    :root {
+      --bg: #070504;
+      --panel: #100808;
+      --accent: #c8ff33;
+      --accent2: #e62020;
+      --acid: #7cff6b;
+      --rot: #6a1a12;
+      --text: #e8e0d4;
+      --text-dim: #8a7a70;
+      --border: #3a221c;
+      --font: 'Share Tech Mono', 'VT323', ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 14px 12px 28px;
+      position: relative;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      pointer-events: none;
+      position: fixed; inset: 0;
+      background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0 1px, transparent 1px 3px),
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(200,255,51,0.08), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 110% 110%, rgba(230,32,32,0.16), transparent 50%);
+      mix-blend-mode: multiply;
+      z-index: 0;
+    }
+    body::after {
+      content: "INSOMNIA  INSOMNIA  INSOMNIA";
+      position: fixed; inset: auto -40px -8px -40px;
+      font-family: VT323, monospace;
+      font-size: 92px; letter-spacing: 0.12em;
+      color: rgba(200,255,51,0.04);
+      transform: rotate(-6deg);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    h1 {
+      font-family: VT323, monospace;
+      font-size: 2.4rem;
+      font-weight: 400;
+      letter-spacing: 0.22em;
+      text-align: center;
+      color: var(--acid);
+      text-shadow: 3px 0 #e62020, -2px 0 #3cff9a, 0 0 18px rgba(200,255,51,0.35);
+      position: relative; z-index: 1;
+    }
+    .sub {
+      text-align: center; color: var(--text-dim); font-size: 0.72rem;
+      letter-spacing: 0.08em; margin: 2px 0 12px; position: relative; z-index: 1;
+    }
+    .app {
+      position: relative; z-index: 1;
+      max-width: 1100px; margin: 0 auto;
+      background: linear-gradient(180deg, #140a0a 0%, #0c0707 100%);
+      border: 2px solid #5a2a18;
+      box-shadow: 6px 6px 0 #000, 0 0 0 1px #c8ff33 inset;
+      overflow: hidden;
+    }
+    .top {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      padding: 8px; border-bottom: 1px solid var(--border);
+      background: repeating-linear-gradient(90deg, #1a0c0c 0 8px, #140808 8px 16px);
+    }
+    button, select, input[type=number] {
+      font-family: inherit; font-size: 0.7rem;
+      background: #1a1010; color: var(--text);
+      border: 1px solid #5a3024; min-height: 34px; padding: 4px 9px;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--acid); color: var(--acid); }
+    button.on, .mode.on { background: #3a1010; border-color: var(--accent2); color: #ffb0b0; }
+    .btn-play { background: var(--accent2); border: 0; color: #fff; font-weight: 700; }
+    .btn-play.playing { background: var(--acid); color: #111; }
+    .btn-acid { background: #1c2a10; border-color: var(--acid); color: var(--acid); }
+    .btn-rot { background: #2a0c0c; border-color: var(--accent2); color: #ff8888; }
+    .ns-chip, .sm-chip, .su-chip { letter-spacing: 0.08em; font-size: 0.62rem; font-weight: 700; }
+    .ns-chip.on { background: #3a1020; border-color: #e62020; color: #ffb0b8; }
+    .sm-chip.on { background: #102018; border-color: var(--acid); color: var(--acid); }
+    .su-chip.on { background: #2a2a08; border-color: #c8ff33; color: #e8ff99; box-shadow: 0 0 12px rgba(200,255,51,0.25); }
+    label.bpm { font-size: 0.65rem; color: var(--text-dim); display: flex; gap: 4px; align-items: center; }
+    input[type=number] { width: 56px; }
+    .layout { display: grid; grid-template-columns: minmax(180px, 240px) minmax(0, 1fr); min-height: 480px; }
+    @media (max-width: 820px) { .layout { grid-template-columns: 1fr; } }
+    .browser {
+      border-right: 1px solid var(--border);
+      background: #0a0606;
+      display: flex; flex-direction: column;
+      max-height: 70vh;
+    }
+    .browser h2, .slots-head, .fx-head {
+      font-size: 0.68rem; letter-spacing: 0.14em;
+      padding: 8px 10px; color: var(--acid);
+      border-bottom: 1px solid var(--border);
+      background: #160a0a;
+    }
+    .browser-list { overflow: auto; flex: 1; padding: 6px; }
+    .folder { margin-bottom: 6px; }
+    .folder > summary {
+      cursor: pointer; list-style: none; font-size: 0.62rem; color: #c9a090;
+      padding: 4px 2px; letter-spacing: 0.06em;
+    }
+    .samp {
+      display: block; width: 100%; text-align: left; margin: 2px 0;
+      font-size: 0.62rem; min-height: 28px; padding: 3px 6px;
+      background: #140a0a;
+    }
+    .samp:hover { background: #2a1010; }
+    .work { display: flex; flex-direction: column; min-width: 0; }
+    .slots {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 6px; padding: 8px; border-bottom: 1px solid var(--border);
+    }
+    .slot.add {
+      border-style: dashed; border-color: #3a4a20; background: #101408;
+      display: flex; align-items: center; justify-content: center; min-height: 72px;
+    }
+    .slot.add button { min-height: 40px; font-size: 1.1rem; color: var(--acid); border-color: #4a6a20; }
+    .slot {
+      border: 1px dashed #6a3828; min-height: 78px; padding: 6px;
+      background: repeating-linear-gradient(135deg, #120808 0 6px, #160a0a 6px 12px);
+      position: relative;
+    }
+    .slot.full { border-style: solid; border-color: #8a4030; background: #1a0c0c; }
+    .slot.active { outline: 1px solid var(--acid); }
+    .slot.drag { border-color: var(--acid); background: #1a2410; }
+    .slot .nm { font-size: 0.62rem; color: #ffd0c0; word-break: break-all; }
+    .slot .row { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+    .slot button { min-height: 26px; padding: 2px 6px; font-size: 0.58rem; }
+    .slot .bay-bpm {
+      display: flex; align-items: center; gap: 4px; width: 100%;
+      font-size: 0.58rem; color: var(--text-dim); margin-top: 4px;
+    }
+    .slot .bay-bpm input {
+      width: 48px; min-height: 24px; font-size: 0.62rem;
+      background: #0a0606; color: var(--text); border: 1px solid var(--border);
+      border-radius: 3px; padding: 2px 4px; font-family: inherit;
+    }
+    .fx-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .fx-head span { margin-right: auto; }
+    .fx-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 6px; padding: 8px; max-height: none; overflow: visible;
+    }
+    .fx-family {
+      grid-column: 1 / -1;
+      margin-top: 8px;
+      padding: 6px 2px 2px;
+      letter-spacing: 0.14em;
+      font-size: 0.62rem;
+      color: var(--accent-bright, #e07090);
+      border-top: 1px solid var(--border, #341820);
+    }
+    .fx {
+      border: 1px solid #4a281c; background: #120808; padding: 6px 7px;
+      position: relative;
+    }
+    .fx.on { border-color: #c8ff33; box-shadow: inset 3px 0 0 var(--acid); }
+    .fx.locked { border-color: #e62020; }
+    .fx .hd { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .fx .hd b { font-size: 0.68rem; letter-spacing: 0.06em; flex: 1; }
+    .fx .chain-ord {
+      flex: 0 0 auto; min-width: 22px; height: 22px; border-radius: 11px;
+      border: 1px solid #4a6a20; background: #101408; color: var(--acid);
+      font-size: 0.62rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .fx .chain-ord.off { opacity: 0.25; border-color: #3a221c; color: #886; }
+    .fx .chain-move { min-height: 22px; min-width: 22px; padding: 0 5px; font-size: 0.58rem; }
+    .fx .tog, .fx .lock { min-height: 24px; font-size: 0.55rem; padding: 1px 6px; }
+    .fx label { display: flex; align-items: center; gap: 6px; font-size: 0.58rem; color: var(--text-dim); margin: 3px 0; min-width: 0; }
+    .fx input[type=range] { flex: 1; accent-color: var(--acid); min-width: 0; width: 100%; }
+    .fx i { flex: 0 0 auto; font-style: normal; font-size: 0.55rem; color: #c8a090; }
+    .status, .hint {
+      padding: 7px 10px; font-size: 0.62rem; color: var(--text-dim);
+      border-top: 1px solid var(--border);
+    }
+    .hint { color: #a08070; }
+  
+
+    .insom-grade {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      z-index: 8;
+      background: radial-gradient(ellipse at 50% 0%, rgba(200,255,51,0.10), transparent 50%), radial-gradient(ellipse at 100% 100%, rgba(230,32,32,0.12), transparent 45%);
+      mix-blend-mode: overlay;
+      opacity: 0.85;
+    }
+
+
+
+.learn-btn { letter-spacing: 0.12em; font-weight: 700; }
+    .learn-btn.on { background: #102418; border-color: #7cff6b; color: #c8ff9a; box-shadow: 0 0 10px rgba(124,255,107,0.25); }
+    .learn-dock {
+      display: none;
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      z-index: 2147483000;
+      max-width: min(520px, calc(100vw - 24px));
+      padding: 12px 14px;
+      background: #140a0a;
+      border: 1px solid #7cff6b;
+      color: #f4efe8;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      letter-spacing: 0.02em;
+      pointer-events: none;
+      mix-blend-mode: normal !important;
+      filter: none !important;
+      isolation: isolate;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.7);
+    }
+    .learn-dock.show { display: block; }
+    html:not(.learn-on) .learn-dock { display: none !important; }
+    .learn-dock b { display: block; color: #7cff6b; letter-spacing: 0.14em; font-size: 0.72rem; margin-bottom: 4px; }
+    @media (max-width: 720px) {
+      .learn-dock {
+        left: 8px; right: 8px; bottom: 8px; max-width: none;
+        font-size: 0.86rem; padding: 10px 12px;
+      }
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin: 0 0 4px;
+      position: relative;
+      z-index: 7;
+    }
+    .title-row h1 { margin: 0; }
+    .insom-eyes {
+      pointer-events: none;
+      display: contents;
+      transition: opacity 0.55s ease, filter 0.55s ease;
+    }
+    body.is-running .insom-eyes .insom-eye {
+      opacity: 0.15;
+      filter: blur(4px);
+    }
+    .insom-eye {
+      position: relative;
+      top: auto; left: auto; right: auto;
+      width: 42px;
+      height: 28px;
+      flex: 0 0 auto;
+      border: 2px solid rgba(124,255,107,0.55);
+      border-radius: 50% 50% 46% 46%;
+      background: radial-gradient(ellipse at 50% 40%, #1a2410 0%, #070504 70%);
+      box-shadow: 0 0 14px rgba(200,255,51,0.18), inset 0 -6px 10px rgba(0,0,0,0.55);
+      overflow: hidden;
+    }
+    .insom-eye.left, .insom-eye.right { left: auto; right: auto; }
+    .insom-eye .lid {
+      position: absolute; inset: 0;
+      background: #070504;
+      transform: translateY(-100%);
+      transition: transform 0.4s ease;
+    }
+    body.is-running .insom-eye .lid { transform: translateY(0); }
+    .insom-eye .ball {
+      position: absolute;
+      left: 50%; top: 52%;
+      width: 12px; height: 12px;
+      margin: -6px 0 0 -6px;
+      border-radius: 50%;
+      background: #c8ff33;
+      box-shadow: 0 0 8px #c8ff33;
+      transition: transform 0.35s ease;
+    }
+    .insom-eye .ball::after {
+      content: "";
+      position: absolute; left: 3px; top: 3px;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #070504;
+    }
+    @media (max-width: 820px) {
+      .insom-eye { width: 32px; height: 22px; }
+      .insom-eye .ball { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+      .title-row { gap: 10px; }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="insom-grade" aria-hidden="true"></div>
+
+  <div class="title-row">
+    <div class="insom-eyes" id="insomEyes" aria-hidden="true">
+      <div class="insom-eye left"><div class="lid"></div><div class="ball" id="eyeL"></div></div>
+    </div>
+    <h1>INSOMNIA</h1>
+    <div class="insom-eyes" aria-hidden="true">
+      <div class="insom-eye right"><div class="lid"></div><div class="ball" id="eyeR"></div></div>
+    </div>
+  </div>
+  <p class="sub">MASTER FX · POLISH RACK FOR THE FINAL MIX · GLUE AIR HALL LIMITER</p>
+  <div class="app">
+    <div class="top">
+      <button type="button" class="learn-btn" id="learnBtn">LEARN</button>
+      <button class="btn-play" id="playBtn">▶ PLAY</button>
+      <button id="stopBtn">■</button>
+      <button id="loopBtn" class="on">LOOP</button>
+      <label class="bpm">BPM <input id="bpm" type="number" min="40" max="240" value="120"></label>
+      <button class="ns-chip" id="nightBtn">NIGHTSHIFT</button>
+      <button class="sm-chip" id="sleepBtn">SLEEPMODE</button>
+      <button class="su-chip" id="suicideBtn">SUICIDE</button>
+      <button type="button" class="btn-acid" id="masterBusBtn" title="On: this rack is DreamBuilder's master mix. Off: only the sample inside Insomnia." style="display:none">MASTER</button>
+      <button class="btn-acid" id="randPickBtn">RND FX PICK</button>
+      <button class="btn-acid" id="randValBtn">RND VALUES</button>
+      <button class="btn-acid" id="randChainBtn" title="Shuffle only the order of FX that are already on">RND CHAIN</button>
+      <button id="allOffBtn">ALL OFF</button>
+      <button class="btn-rot" id="exportBtn">⬇ EXPORT</button>
+      <button id="saveSamplesBtn">Save to Samples</button>
+    </div>
+    <div class="layout">
+      <aside class="browser">
+        <h2>TAPE BROWSER</h2>
+        <div class="browser-list" id="browserList">Asking Master for samples…</div>
+      </aside>
+      <div class="work">
+        <div class="slots-head">BAYS · set each sample BPM so it stretches to master BPM · Load / drop / double-click · ✕ deletes</div>
+        <div class="slots" id="slots"></div>
+        <div class="fx-head">
+          <span>ALL CURATED FX — toggle · lock · numbered chain</span>
+        </div>
+        <div class="fx-grid" id="fxGrid"></div>
+      </div>
+    </div>
+    <div class="hint">Click a tape to preview. Double-click opens a new bay with that tape. + adds an empty bay. ✕ deletes. Exports land in the INSOMNIA save folder and show under INSOMNIA in this browser. Lock an FX (LOCK) so RND VALUES / RND FX PICK leave it. Night / Sleep / Suicide sit after the rack. Export writes into the INSOMNIA save folder via Master.</div>
+    <div class="status" id="status">Load a body to ruin.</div>
+  </div>
+<script>
+
+var DREAM_LIVE_PAD = 0.55;
+
+/* Role-balanced live bus — Suicide paths may still push hotter upstream */
+var __dreamLiveBus = null;
+function dreamLiveBus(ctx) {
+  if (!ctx) return null;
+  if (__dreamLiveBus && __dreamLiveBus.ctx === ctx) return __dreamLiveBus.in;
+  var input = ctx.createGain();
+  var comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -20; comp.knee.value = 12; comp.ratio.value = 3.2;
+  comp.attack.value = 0.005; comp.release.value = 0.15;
+  var lim = ctx.createDynamicsCompressor();
+  lim.threshold.value = -8; lim.knee.value = 2; lim.ratio.value = 14;
+  lim.attack.value = 0.002; lim.release.value = 0.08;
+  var pad = ctx.createGain();
+  pad.gain.value = DREAM_LIVE_PAD;
+  input.connect(comp); comp.connect(lim); lim.connect(pad);
+  pad.connect(ctx.destination);
+  __dreamLiveBus = { ctx: ctx, in: input, pad: pad };
+  return input;
+}
+
+    const LEARN_TIPS = {"playBtn":"Tap this to hear the music.","stopBtn":"Tap this to stop the music.","exportBtn":"Tap this to save your sound so you can use it later.","randomizeBtn":"Tap this to make a surprise new sound.","nightShiftBtn":"Makes the sound feel dark and dreamy. Tap again to turn it off.","sleepModeBtn":"Makes the sound soft and small. Tap again to turn it off.","clearBtn":"Wipes the notes clean. Your saved sounds stay safe.","loadBtn":"Pick a sound from the list.","NIGHTSHIFT":"Dark dreamy sound.","SLEEPMODE":"Soft quiet sound.","SUICIDE":"Loud messy sound. Be careful.","LEARN":"Turns the help tips on or off.","loopBtn":"Loops playback of the bays.","nightBtn":"NightShift after the FX rack.","sleepBtn":"SleepMode after the FX rack.","suicideBtn":"Suicide after the FX rack.","randPickBtn":"Turns a random set of FX on. Locked cards stay as you left them.","randValBtn":"Rerolls amounts on unlocked FX only. Locked cards keep their numbers.","allOffBtn":"Turns every FX card off. Locks still keep their values for later."};
+
+    window.LEARN_ON = false;
+function dreamLearnShow(title, body){
+      let dock = document.getElementById('learnDock');
+      if (!dock){
+        dock = document.createElement('div');
+        dock.id = 'learnDock';
+        dock.className = 'learn-dock';
+        dock.innerHTML = '<b id="learnTitle">LEARN</b><span id="learnBody"></span>';
+        document.body.appendChild(dock);
+      }
+      document.getElementById('learnTitle').textContent = (title || 'LEARN').slice(0,40);
+      document.getElementById('learnBody').textContent = body || '';
+      dock.classList.add('show');
+    }
+    function dreamLearnHide(){
+      const dock = document.getElementById('learnDock');
+      if (dock) { dock.classList.remove('show'); dock.style.display = 'none'; }
+    }
+    function dreamLearnShow(title, body){
+      if (!window.LEARN_ON) { dreamLearnHide(); return; }
+      let dock = document.getElementById('learnDock');
+      if (!dock){
+        dock = document.createElement('div');
+        dock.id = 'learnDock';
+        dock.className = 'learn-dock';
+        dock.innerHTML = '<b id="learnTitle">LEARN</b><span id="learnBody"></span>';
+        document.body.appendChild(dock);
+      }
+      const ti = document.getElementById('learnTitle');
+      const bo = document.getElementById('learnBody');
+      if (ti) ti.textContent = (title || 'LEARN').slice(0,48);
+      if (bo) bo.textContent = body || '';
+      dock.style.display = 'block';
+      dock.classList.add('show');
+    }
+    function dreamLearnFromEl(el){
+      if (!el) return;
+      const btn = el.closest('button, [data-learn], .s-play, .s-add, .lib-item, .samp, .stock-btn, .ns-chip, .sm-chip, .su-chip');
+      if (!btn) return;
+      const id = btn.id || btn.getAttribute('data-learn-id') || '';
+      const label = (btn.getAttribute('data-learn-title') || btn.title || btn.textContent || id || 'Control').replace(/\s+/g,' ').trim().slice(0,48);
+      let text = btn.getAttribute('data-learn') || (window.LEARN_TIPS && (LEARN_TIPS[id] || LEARN_TIPS[label] || LEARN_TIPS[label.toUpperCase()]));
+      if (!text){
+        const raw = (btn.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+        if (window.LEARN_TIPS){
+          for (const k of Object.keys(LEARN_TIPS)){
+            if (raw.indexOf(k.toLowerCase()) >= 0){ text = LEARN_TIPS[k]; break; }
+          }
+        }
+      }
+      if (!text) text = 'This control: ' + label + '. Flip LEARN off when you already know the room.';
+      dreamLearnShow(label, text);
+    }
+    function dreamLearnBind(){
+      document.addEventListener('mouseover', function(ev){
+        if (!window.LEARN_ON) return;
+        const t = ev.target;
+        if (!t || !t.closest) return;
+        if (t.closest('#learnBtn') || t.closest('#learnBtnB') || t.closest('#learnDock')) return;
+        if (!t.closest('button, [data-learn], .s-play, .s-add, .lib-item, .samp, .stock-btn, .ns-chip, .sm-chip, .su-chip, input, select, .sample-item')) return;
+        dreamLearnFromEl(t);
+      }, true);
+      document.addEventListener('pointerdown', function(ev){
+        if (!window.LEARN_ON) return;
+        const t = ev.target;
+        if (!t || !t.closest) return;
+        if (t.closest('#learnBtn') || t.closest('#learnBtnB')) return;
+        if (t.closest('button, [data-learn], .s-play, .s-add, .lib-item, .samp, .stock-btn, .ns-chip, .sm-chip, .su-chip, input, select, .sample-item')) {
+          dreamLearnFromEl(t);
+        }
+      }, true);
+      document.addEventListener('mouseout', function(ev){
+        if (!window.LEARN_ON) return;
+        const t = ev.target;
+        if (!t || !t.closest) return;
+        if (t.closest('button, [data-learn], .s-play, .s-add, .lib-item, .samp, .stock-btn, .ns-chip, .sm-chip, .su-chip, input, select, .sample-item')) {
+          const next = ev.relatedTarget;
+          if (next && next.closest && next.closest('button, [data-learn], .s-play, .s-add, .lib-item, .samp, .stock-btn, input, select, .sample-item')) return;
+          dreamLearnHide();
+        }
+      }, true);
+    }
+    function dreamLearnToggle(){
+      window.LEARN_ON = !window.LEARN_ON;
+      document.documentElement.classList.toggle('learn-on', window.LEARN_ON);
+      const b = document.getElementById('learnBtn');
+      if (b) b.classList.toggle('on', window.LEARN_ON);
+      const b2 = document.getElementById('learnBtnB');
+      if (b2) b2.classList.toggle('on', window.LEARN_ON);
+      if (window.LEARN_ON) {
+        dreamLearnShow('LEARN ON', 'Hover a control, or tap it on a phone. This corner explains it.');
+      } else {
+        dreamLearnHide();
+      }
+    }
+    dreamLearnBind();
+
+    document.addEventListener("DOMContentLoaded", function(){ const b=document.getElementById("learnBtn"); if(b) b.addEventListener("click", dreamLearnToggle); });
+    (function(){ const b=document.getElementById("learnBtn"); if(b) b.addEventListener("click", dreamLearnToggle); })();
+
+const NOTES = { '1/4':1, '1/8':0.5, '1/16':0.25, '1/8D':0.75, '1/16D':0.375 };
+function noteToHz(note, bpm) {
+  const beats = NOTES[note] || 0.5;
+  return (bpm / 60) / beats;
+}
+function noteToSec(note, bpm) {
+  const beats = NOTES[note] || 0.5;
+  return beats * 60 / Math.max(40, bpm);
+}
+function fmtHz(v){ return Math.round(v) + ' Hz'; }
+function fmtPct(v){ return Math.round(v * 100) + '%'; }
+
+const FX_DEFS = [
+{ id:'drive', name:'Drive', params:[
+    { key:'amount', min:0, max:1, def:0.22 },
+    { key:'tone', min:800, max:12000, def:4200 }
+  ]},
+{ id:'chorus', name:'Doubler / Chorus', params:[
+    { key:'rate', min:0.1, max:4, def:0.9 },
+    { key:'depth', min:0.0005, max:0.006, def:0.003 },
+    { key:'mix', min:0, max:1, def:0.28 }
+  ]},
+{ id:'delay', name:'Delay', note:true, params:[
+    { key:'feedback', min:0, max:0.85, def:0.28 },
+    { key:'mix', min:0, max:1, def:0.2 },
+    { key:'note', notes:['1/4','1/8','1/16','1/8D'], def:'1/8' }
+  ]},
+{ id:'reverb', name:'Reverb', params:[
+    { key:'decay', min:0.3, max:6, def:1.6 },
+    { key:'mix', min:0, max:1, def:0.2 }
+  ]},
+{ id:'width', name:'Stereo Width', params:[
+    { key:'amount', min:0, max:1, def:0.45 }
+  ]},
+{ id:'hpf', name:'High-Pass', params:[
+    { key:'hz', min:20, max:400, def:80 }
+  ]},
+{ id:'lpf', name:'Low-Pass', params:[
+    { key:'hz', min:800, max:16000, def:9000 }
+  ]},
+{ id:'trem', name:'Tremolo / Chop', note:true, params:[
+    { key:'depth', min:0, max:1, def:0.4 },
+    { key:'note', notes:['1/4','1/8','1/16'], def:'1/8' }
+  ]},
+{ id:'pan', name:'Auto-Pan', note:true, params:[
+    { key:'depth', min:0, max:1, def:0.5 },
+    { key:'note', notes:['1/4','1/8'], def:'1/4' }
+  ]},
+{ id:'flanger', name:'Flanger', params:[
+    { key:'rate', min:0.05, max:2, def:0.25 },
+    { key:'mix', min:0, max:1, def:0.28 }
+  ]},
+{ id:'phaser', name:'Phaser', params:[
+    { key:'rate', min:0.05, max:2, def:0.3 },
+    { key:'mix', min:0, max:1, def:0.3 }
+  ]},
+{ id:'crush', name:'Bitcrush / Lofi', params:[
+    { key:'amount', min:0, max:1, def:0.28 }
+  ]},
+{ id:'vibrato', name:'Vibrato', params:[
+    { key:'rate', min:1, max:9, def:5 },
+    { key:'depth', min:0.0004, max:0.005, def:0.002 }
+  ]},
+{ id:'slap', name:'Slapback', note:true, params:[
+    { key:'mix', min:0, max:1, def:0.22 },
+    { key:'note', notes:['1/16','1/8','1/16D'], def:'1/16' }
+  ]},
+{ id:'phone', name:'Telephone', params:[
+    { key:'amount', min:0, max:1, def:0.4 }
+  ]},
+{ id:'tape', name:'Tape / Wow', params:[
+    { key:'wow', min:0, max:1, def:0.22 },
+    { key:'dull', min:0, max:1, def:0.3 }
+  ]},
+{ id:'stutter', name:'Stutter / Gate', note:true, params:[
+    { key:'depth', min:0, max:1, def:0.45 },
+    { key:'note', notes:['1/16','1/8'], def:'1/16' }
+  ]},
+{ id:'formant', name:'Formant Body', params:[
+    { key:'hz', min:400, max:1800, def:900 },
+    { key:'gain', min:0, max:8, def:3.2 }
+  ]},
+{ id:'plate', name:'Short Plate', params:[
+    { key:'mix', min:0, max:1, def:0.22 }
+  ]},
+{ id:'comb', name:'Interval Comb', params:[
+    { key:'mix', min:0, max:1, def:0.16 }
+  ]},
+{ id:'glue', name:'Mid Glue', params:[
+    { key:'hz', min:400, max:1400, def:800 },
+    { key:'gain', min:0, max:6, def:2 }
+  ]},
+{ id:'warm', name:'Warmth', params:[
+    { key:'gain', min:0, max:6, def:1.6 }
+  ]},
+{ id:'predelay', name:'Predelay', params:[
+    { key:'ms', min:0.2, max:12, def:1.4 }
+  ]},
+{ id:'fadeout', name:'Fade / Shape', params:[
+    { key:'attack', min:0.001, max:2, def:0.02 },
+    { key:'release', min:0.01, max:4, def:0.35 },
+    { key:'body', min:0.05, max:8, def:1.1 }
+  ]},
+{ id:'grain', name:'Grain Scramble', params:[
+    { key:'amount', min:0, max:1, def:0.35 }
+  ]},
+{ id:'melt', name:'Melt', params:[
+    { key:'amount', min:0, max:1, def:0.4 },
+    { key:'tone', min:400, max:12000, def:4500 }
+  ]},
+{ id:'worm', name:'Worm / Wriggle', params:[
+    { key:'rate', min:0.2, max:4, def:1.2 },
+    { key:'depth', min:0, max:1, def:0.45 },
+    { key:'mix', min:0, max:1, def:0.35 }
+  ]},
+{ id:'rot', name:'Rot', params:[
+    { key:'amount', min:0, max:1, def:0.35 },
+    { key:'dark', min:400, max:10000, def:2800 }
+  ]},
+{ id:'infection', name:'Infection Echo', params:[
+    { key:'feedback', min:0, max:0.7, def:0.32 },
+    { key:'mix', min:0, max:1, def:0.28 },
+    { key:'time', min:0.05, max:0.45, def:0.18 }
+  ]},
+{ id:'crawl', name:'Crawl Trail', params:[
+    { key:'mix', min:0, max:1, def:0.25 },
+    { key:'time', min:0.08, max:0.5, def:0.22 }
+  ]},
+{ id:'air', name:'Star Air', params:[
+    { key:'hz', min:3000, max:14000, def:6500 },
+    { key:'gain', min:0, max:10, def:3.5 }
+  ]},
+{ id:'grit', name:'Devil Grit', params:[
+    { key:'amount', min:0, max:1, def:0.4 },
+    { key:'feedback', min:0, max:0.55, def:0.22 }
+  ]},
+{ id:'haze', name:'Moon Haze', params:[
+    { key:'hz', min:800, max:6000, def:2200 },
+    { key:'mix', min:0, max:1, def:0.55 }
+  ]},
+{ id:'bite', name:'Tower Bite', params:[
+    { key:'hz', min:200, max:1200, def:480 },
+    { key:'amount', min:0, max:1, def:0.4 }
+  ]},
+{ id:'vortex', name:'Vortex Orbit', params:[
+    { key:'spin', min:0.2, max:6, def:1.4 },
+    { key:'pull', min:0, max:1, def:0.45 },
+    { key:'dark', min:400, max:12000, def:4200 }
+  ]},
+{ id:'seance', name:'Seance Choir', params:[
+    { key:'hz', min:300, max:1800, def:800 },
+    { key:'room', min:0, max:1, def:0.35 },
+    { key:'spread', min:0, max:1, def:0.4 }
+  ]},
+{ id:'ripple', name:'Ripple Spray', params:[
+    { key:'size', min:0.02, max:0.28, def:0.09 },
+    { key:'mix', min:0, max:1, def:0.4 },
+    { key:'feedback', min:0, max:0.7, def:0.22 }
+  ]},
+{ id:'halo', name:'Halo Bloom', params:[
+    { key:'decay', min:0.08, max:0.8, def:0.28 },
+    { key:'shine', min:0, max:1, def:0.45 },
+    { key:'mix', min:0, max:1, def:0.4 }
+  ]},
+{ id:'pulse', name:'Euclid Pulse', params:[
+    { key:'steps', min:3, max:16, def:8 },
+    { key:'hits', min:1, max:16, def:3 },
+    { key:'depth', min:0, max:1, def:0.7 }
+  ]},
+{ id:'fog', name:'Fog Bank', params:[
+    { key:'tone', min:400, max:8000, def:1800 },
+    { key:'drift', min:0, max:1, def:0.35 },
+    { key:'mix', min:0, max:1, def:0.5 }
+  ]},
+{ id:'needle', name:'Needle Wow', params:[
+    { key:'wow', min:0, max:1, def:0.28 },
+    { key:'tone', min:800, max:12000, def:4200 },
+    { key:'stop', min:0, max:1, def:0.15 }
+  ]},
+{ id:'ink', name:'Draw Ink', params:[
+    { key:'drive', min:0, max:1, def:0.3 },
+    { key:'smear', min:0, max:1, def:0.35 },
+    { key:'mix', min:0, max:1, def:0.4 }
+  ]},
+{ id:'loud', name:'Loud / Limiter', group:'polish', params:[
+    { key:'makeup', min:0, max:1, def:0.28 }
+  ]},
+{ id:'softclip', name:'Soft Clip', group:'polish', params:[
+    { key:'amount', min:0, max:1, def:0.25 },
+    { key:'tone', min:2000, max:14000, def:9000 }
+  ]},
+{ id:'tilt', name:'Tilt EQ', group:'polish', params:[
+    { key:'hz', min:200, max:2000, def:700 },
+    { key:'gain', min:-8, max:8, def:1.5 }
+  ]},
+{ id:'basshelf', name:'Bass Shelf', group:'polish', params:[
+    { key:'hz', min:40, max:240, def:90 },
+    { key:'gain', min:-8, max:8, def:2 }
+  ]},
+{ id:'airshelf', name:'Air Shelf', group:'polish', params:[
+    { key:'hz', min:4000, max:12000, def:8000 },
+    { key:'gain', min:-6, max:8, def:2.5 }
+  ]},
+{ id:'presence', name:'Presence', group:'polish', params:[
+    { key:'hz', min:1200, max:6000, def:3200 },
+    { key:'gain', min:-6, max:8, def:2 }
+  ]},
+{ id:'mud', name:'Mud Cut', group:'polish', params:[
+    { key:'hz', min:120, max:400, def:240 },
+    { key:'gain', min:-10, max:2, def:-3 }
+  ]},
+{ id:'debox', name:'Box Cut', group:'polish', params:[
+    { key:'hz', min:200, max:600, def:320 },
+    { key:'gain', min:-10, max:2, def:-2.5 }
+  ]},
+{ id:'notch', name:'Hum Notch', group:'polish', params:[
+    { key:'hz', min:40, max:120, def:60 }
+  ]},
+{ id:'widen', name:'Haas Width', group:'polish', params:[
+    { key:'mix', min:0, max:1, def:0.28 }
+  ]},
+{ id:'monobass', name:'Mono Bass', group:'polish', params:[
+    { key:'hz', min:60, max:240, def:140 }
+  ]},
+{ id:'room', name:'Short Room', group:'polish', params:[
+    { key:'mix', min:0, max:1, def:0.16 }
+  ]},
+{ id:'hall', name:'Hall', group:'polish', params:[
+    { key:'mix', min:0, max:1, def:0.18 }
+  ]},
+{ id:'exciter', name:'Exciter', group:'polish', params:[
+    { key:'amount', min:0, max:1, def:0.22 },
+    { key:'tone', min:3000, max:14000, def:7000 }
+  ]},
+{ id:'warmth', name:'Warmth 2', group:'polish', params:[
+    { key:'amount', min:0, max:1, def:0.24 },
+    { key:'tone', min:2000, max:9000, def:5000 }
+  ]},
+{ id:'satin', name:'Satin Roll', group:'polish', params:[
+    { key:'amount', min:0, max:1, def:0.18 },
+    { key:'tone', min:3000, max:12000, def:6500 }
+  ]},
+{ id:'duck', name:'Polish Pump', group:'polish', params:[
+    { key:'depth', min:0, max:1, def:0.28 }
+  ]},
+{ id:'shimmer', name:'Shimmer', group:'polish', params:[
+    { key:'mix', min:0, max:1, def:0.2 }
+  ]},
+{ id:'chorusbus', name:'Bus Chorus', group:'polish', params:[
+    { key:'mix', min:0, max:1, def:0.18 }
+  ]},
+{ id:'focus', name:'Focus', group:'polish', params:[
+    { key:'gain', min:0, max:6, def:2.4 }
+  ]},
+{ id:'trim', name:'Trim', group:'polish', params:[
+    { key:'gain', min:0.4, max:1.4, def:1 }
+  ]},
+{ id:'balance', name:'Balance', group:'polish', params:[
+    { key:'pan', min:-1, max:1, def:0 }
+  ]},
+{ id:'sheen', name:'Sheen', group:'polish', params:[
+    { key:'gain', min:0.6, max:1.2, def:1 },
+    { key:'air', min:0, max:6, def:2 }
+  ]},
+{ id:'softsat', name:'Soft Sat', params:[
+    { key:'amount', min:0, max:1, def:0.25 },
+    { key:'tone', min:2000, max:12000, def:6000 }
+  ]},
+{ id:'edge', name:'Edge', params:[
+    { key:'hz', min:3000, max:12000, def:6500 },
+    { key:'gain', min:0, max:10, def:3 }
+  ]},
+{ id:'bloom', name:'Bloom', params:[
+    { key:'mix', min:0, max:1, def:0.22 },
+    { key:'size', min:0.05, max:0.4, def:0.14 }
+  ]},
+{ id:'swirl', name:'Swirl Filter', params:[
+    { key:'rate', min:0.05, max:2, def:0.25 },
+    { key:'depth', min:200, max:4000, def:1200 },
+    { key:'base', min:400, max:6000, def:1800 }
+  ]},
+{ id:'ping', name:'Ping', note:true, params:[
+    { key:'mix', min:0, max:1, def:0.2 },
+    { key:'note', notes:['1/16','1/8','1/8D'], def:'1/16' }
+  ]},
+{ id:'drift', name:'Drift', params:[
+    { key:'rate', min:0.05, max:1.5, def:0.2 },
+    { key:'depth', min:0.001, max:0.02, def:0.006 },
+    { key:'mix', min:0, max:1, def:0.28 }
+  ]},
+{ id:'snap', name:'Snap', params:[
+    { key:'hz', min:80, max:800, def:220 },
+    { key:'amount', min:0, max:1, def:0.35 }
+  ]},
+{ id:'body', name:'Body', params:[
+    { key:'hz', min:120, max:500, def:220 },
+    { key:'gain', min:0, max:8, def:2.5 }
+  ]},
+{ id:'airlift', name:'Air Lift', params:[
+    { key:'hz', min:5000, max:14000, def:9000 },
+    { key:'gain', min:0, max:8, def:2.2 }
+  ]},
+{ id:'subboost', name:'Sub Boost', params:[
+    { key:'hz', min:40, max:120, def:70 },
+    { key:'gain', min:0, max:10, def:3 }
+  ]},
+{ id:'notchv', name:'Notch Sweep', params:[
+    { key:'hz', min:200, max:4000, def:900 },
+    { key:'q', min:2, max:16, def:6 }
+  ]},
+{ id:'ringmod', name:'Ring Light', params:[
+    { key:'hz', min:40, max:400, def:110 },
+    { key:'mix', min:0, max:1, def:0.18 }
+  ]},
+{ id:'deepphase', name:'Deep Phase', params:[
+    { key:'rate', min:0.05, max:1.5, def:0.18 },
+    { key:'mix', min:0, max:1, def:0.32 }
+  ]},
+{ id:'longecho', name:'Long Echo', note:true, params:[
+    { key:'feedback', min:0, max:0.9, def:0.42 },
+    { key:'mix', min:0, max:1, def:0.22 },
+    { key:'note', notes:['1/4','1/2','1/4D'], def:'1/4' }
+  ]},
+{ id:'freeze', name:'Freeze', params:[
+    { key:'feedback', min:0.5, max:0.95, def:0.78 },
+    { key:'mix', min:0, max:1, def:0.3 }
+  ]},
+{ id:'vinyl', name:'Vinyl', params:[
+    { key:'amount', min:0, max:1, def:0.3 },
+    { key:'tone', min:2000, max:10000, def:5500 }
+  ]},
+{ id:'radio', name:'Radio', params:[
+    { key:'hz', min:400, max:2500, def:1100 },
+    { key:'q', min:0.5, max:4, def:1.4 }
+  ]},
+{ id:'under', name:'Underwater', params:[
+    { key:'hz', min:400, max:3000, def:1100 },
+    { key:'mix', min:0, max:1, def:0.35 }
+  ]},
+{ id:'glass', name:'Glass', params:[
+    { key:'mix', min:0, max:1, def:0.24 },
+    { key:'tone', min:3000, max:14000, def:8000 }
+  ]},
+{ id:'pulseamp', name:'Pulse Amp', note:true, params:[
+    { key:'depth', min:0, max:1, def:0.4 },
+    { key:'note', notes:['1/4','1/8','1/16'], def:'1/8' }
+  ]},
+{ id:'swirlpan', name:'Swirl Pan', note:true, params:[
+    { key:'depth', min:0, max:1, def:0.55 },
+    { key:'note', notes:['1/4','1/2','1/8'], def:'1/4' }
+  ]},
+{ id:'cream', name:'Cream', params:[
+    { key:'amount', min:0, max:1, def:0.28 },
+    { key:'warm', min:0, max:8, def:2.5 }
+  ]},
+{ id:'fogbank', name:'Fog Bank 2', params:[
+    { key:'hz', min:800, max:5000, def:2200 },
+    { key:'mix', min:0, max:1, def:0.4 }
+  ]},
+{ id:'glue2', name:'Glue II', group:'polish', params:[
+    { key:'amount', min:0, max:1, def:0.3 }
+  ]},
+{ id:'ceiling', name:'Ceiling', group:'polish', params:[
+    { key:'thresh', min:0.2, max:1, def:0.7 }
+  ]},
+{ id:'busdrive', name:'Bus Drive', group:'polish', params:[
+    { key:'amount', min:0, max:1, def:0.22 },
+    { key:'tone', min:2000, max:10000, def:5000 }
+  ]},
+{ id:'airmax', name:'Air Max', group:'polish', params:[
+    { key:'gain', min:0, max:8, def:2.5 }
+  ]},
+{ id:'lowend', name:'Low End', group:'polish', params:[
+    { key:'hz', min:40, max:160, def:80 },
+    { key:'gain', min:0, max:8, def:2 }
+  ]},
+{ id:'midcarve', name:'Mid Carve', group:'polish', params:[
+    { key:'hz', min:400, max:2500, def:900 },
+    { key:'gain', min:-8, max:6, def:-2 }
+  ]},
+{ id:'widen2', name:'Widen II', group:'polish', params:[
+    { key:'mix', min:0, max:1, def:0.32 }
+  ]},
+{ id:'mono80', name:'Mono 80', group:'polish', params:[
+    { key:'hz', min:60, max:120, def:80 }
+  ]},
+{ id:'polishlp', name:'Polish LP', group:'polish', params:[
+    { key:'hz', min:6000, max:18000, def:14000 }
+  ]},
+{ id:'polishhp', name:'Polish HP', group:'polish', params:[
+    { key:'hz', min:20, max:120, def:35 }
+  ]},
+{ id:'sparkle', name:'Sparkle', group:'polish', params:[
+    { key:'hz', min:4000, max:12000, def:7000 },
+    { key:'gain', min:0, max:8, def:2.2 }
+  ]},
+{ id:'velvet', name:'Velvet', group:'polish', params:[
+    { key:'amount', min:0, max:1, def:0.2 }
+  ]},
+{ id:'punch', name:'Punch', group:'polish', params:[
+    { key:'hz', min:80, max:250, def:140 },
+    { key:'gain', min:0, max:8, def:2.4 }
+  ]},
+{ id:'silk', name:'Silk', group:'polish', params:[
+    { key:'hz', min:2500, max:8000, def:4200 },
+    { key:'gain', min:-8, max:0, def:-2.5 }
+  ]},
+{ id:'mass', name:'Mass', group:'polish', params:[
+    { key:'amount', min:0, max:1, def:0.28 }
+  ]},
+{ id:'polishverb', name:'Polish Verb', group:'polish', params:[
+    { key:'mix', min:0, max:1, def:0.14 }
+  ]},
+{ id:'image', name:'Image', group:'polish', params:[
+    { key:'width', min:0, max:1, def:0.4 }
+  ]},
+{ id:'finalloud', name:'Final Loud', group:'polish', params:[
+    { key:'gain', min:0.6, max:1.6, def:1.05 }
+  ]},
+{ id:'curve', name:'Curve', group:'polish', params:[
+    { key:'tilt', min:-6, max:6, def:1.5 }
+  ]},
+{ id:'clean', name:'Clean', group:'polish', params:[
+    { key:'amount', min:0, max:1, def:0.25 }
+  ]},
+{ id:'stage', name:'Stage', group:'polish', params:[
+    { key:'mix', min:0, max:1, def:0.12 }
+  ]},
+{ id:'wire', name:'Wire', group:'polish', params:[
+    { key:'hz', min:5000, max:14000, def:9000 },
+    { key:'gain', min:0, max:6, def:1.8 }
+  ]},
+{ id:'glue3', name:'Parallel Glue', group:'polish', params:[
+    { key:'mix', min:0, max:1, def:0.35 }
+  ]},
+{ id:'shelfmaster', name:'Shelf Master', group:'polish', params:[
+    { key:'low', min:-4, max:6, def:1.5 },
+    { key:'high', min:-4, max:6, def:1.2 }
+  ]},
+{ id:'finaltrim', name:'Final Trim', group:'polish', params:[
+    { key:'gain', min:0.4, max:1.4, def:1 }
+  ]},
+  { id:'sublift', name:'Sub Lift', kind:'shelf', params:[
+    { key:'hz', min:40, max:140, def:70 },
+    { key:'gain', min:0, max:8, def:2.0 }
+  ]},
+  { id:'presence2', name:'Presence Peak', kind:'filter', params:[
+    { key:'hz', min:800, max:5000, def:2200 },
+    { key:'gain', min:0, max:8, def:2.6 }
+  ]},
+  { id:'mudnotch', name:'Mud Notch', kind:'filter', params:[
+    { key:'hz', min:180, max:500, def:280 },
+    { key:'amount', min:0, max:1, def:0.4 }
+  ]},
+  { id:'boxnotch', name:'Box Notch', kind:'filter', params:[
+    { key:'hz', min:300, max:900, def:520 },
+    { key:'amount', min:0, max:1, def:0.35 }
+  ]},
+  { id:'nightair', name:'Night Air', kind:'shelf', params:[
+    { key:'hz', min:5000, max:14000, def:9000 },
+    { key:'gain', min:0, max:6, def:1.8 }
+  ]},
+  { id:'sleepgate', name:'Sleep Gate', kind:'gate', params:[
+    { key:'depth', min:0, max:1, def:0.4 },
+    { key:'rate', min:0.2, max:4, def:0.8 }
+  ]},
+  { id:'redroom', name:'Red Room', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.3 },
+    { key:'decay', min:0.4, max:3, def:1.2 }
+  ]},
+  { id:'acidbite', name:'Acid Bite', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.42 },
+    { key:'tone', min:800, max:8000, def:2400 }
+  ]},
+  { id:'ghostdelay', name:'Ghost Delay', kind:'delay', params:[
+    { key:'mix', min:0, max:1, def:0.26 },
+    { key:'feedback', min:0, max:0.7, def:0.34 }
+  ]},
+  { id:'boneeq', name:'Bone EQ', kind:'filter', params:[
+    { key:'hz', min:200, max:1200, def:500 },
+    { key:'gain', min:0, max:8, def:2 }
+  ]},
+  { id:'marrow', name:'Marrow', kind:'filter', params:[
+    { key:'hz', min:80, max:400, def:160 },
+    { key:'gain', min:0, max:8, def:2.2 }
+  ]},
+  { id:'cinder', name:'Cinder', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.37 }
+  ]},
+  { id:'ashshelf', name:'Ash Shelf', kind:'shelf', params:[
+    { key:'gain', min:0, max:6, def:1.4 }
+  ]},
+  { id:'cobalt', name:'Cobalt', kind:'mod', params:[
+    { key:'rate', min:0.1, max:3, def:0.6 },
+    { key:'mix', min:0, max:1, def:0.28 }
+  ]},
+  { id:'ember', name:'Ember', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.33 }
+  ]},
+  { id:'lilac', name:'Lilac Halo', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.22 }
+  ]},
+  { id:'pine', name:'Pine Room', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.2 }
+  ]},
+  { id:'inkdrip', name:'Ink Drip', kind:'delay', params:[
+    { key:'mix', min:0, max:1, def:0.18 }
+  ]},
+  { id:'needle2', name:'Needle Flutter', kind:'mod', params:[
+    { key:'rate', min:0.2, max:6, def:1.4 },
+    { key:'depth', min:0, max:1, def:0.3 }
+  ]},
+  { id:'halo2', name:'Halo II', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.24 }
+  ]},
+  { id:'ripple2', name:'Ripple II', kind:'mod', params:[
+    { key:'rate', min:0.2, max:4, def:1 },
+    { key:'depth', min:0, max:1, def:0.35 }
+  ]},
+  { id:'orbit', name:'Orbit', kind:'width', params:[
+    { key:'rate', min:0.05, max:2, def:0.4 },
+    { key:'depth', min:0, max:1, def:0.45 }
+  ]},
+  { id:'choirbed', name:'Choir Bed', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.28 }
+  ]},
+  { id:'pluckslap', name:'Pluck Slap', kind:'delay', params:[
+    { key:'mix', min:0, max:1, def:0.2 }
+  ]},
+  { id:'drumglue', name:'Drum Glue', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.34 }
+  ]},
+  { id:'bassfocus', name:'Bass Focus', kind:'filter', params:[
+    { key:'hz', min:40, max:180, def:90 },
+    { key:'gain', min:0, max:8, def:2.4 }
+  ]},
+  { id:'hatair', name:'Hat Air', kind:'shelf', params:[
+    { key:'hz', min:6000, max:16000, def:10000 },
+    { key:'gain', min:0, max:8, def:2 }
+  ]},
+  { id:'snapsat', name:'Snap Sat', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.3 }
+  ]},
+  { id:'roomtap', name:'Room Tap', kind:'delay', params:[
+    { key:'mix', min:0, max:1, def:0.16 }
+  ]},
+  { id:'darkhall', name:'Dark Hall', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.3 },
+    { key:'decay', min:1, max:6, def:2.8 }
+  ]},
+  { id:'brightplate', name:'Bright Plate', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.22 }
+  ]},
+  { id:'slowflange', name:'Slow Flange', kind:'mod', params:[
+    { key:'rate', min:0.02, max:0.6, def:0.12 },
+    { key:'mix', min:0, max:1, def:0.3 }
+  ]},
+  { id:'fasttrem', name:'Fast Trem', kind:'gate', params:[
+    { key:'rate', min:2, max:12, def:5 },
+    { key:'depth', min:0, max:1, def:0.4 }
+  ]},
+  { id:'widechorus', name:'Wide Chorus', kind:'mod', params:[
+    { key:'rate', min:0.1, max:2, def:0.5 },
+    { key:'mix', min:0, max:1, def:0.32 }
+  ]},
+  { id:'tightcomp', name:'Tight Comp', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.4 }
+  ]},
+  { id:'opencomp', name:'Open Comp', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.25 }
+  ]},
+  { id:'deess', name:'De-ess', kind:'filter', params:[
+    { key:'hz', min:4000, max:10000, def:6500 },
+    { key:'amount', min:0, max:1, def:0.35 }
+  ]},
+  { id:'lowmono', name:'Low Mono', kind:'filter', params:[
+    { key:'hz', min:80, max:250, def:140 }
+  ]},
+  { id:'sideair', name:'Side Air', kind:'width', params:[
+    { key:'amount', min:0, max:1, def:0.4 }
+  ]},
+  { id:'crush2', name:'Crush II', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.32 }
+  ]},
+  { id:'wow2', name:'Wow II', kind:'mod', params:[
+    { key:'rate', min:0.1, max:2, def:0.4 },
+    { key:'depth', min:0, max:1, def:0.3 }
+  ]},
+  { id:'flutter', name:'Flutter', kind:'mod', params:[
+    { key:'rate', min:2, max:9, def:4 },
+    { key:'depth', min:0, max:1, def:0.22 }
+  ]},
+  { id:'gate16', name:'16th Gate', kind:'gate', params:[
+    { key:'depth', min:0, max:1, def:0.5 }
+  ]},
+  { id:'reverse', name:'Reverse Bloom', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.26 }
+  ]},
+  { id:'octdown', name:'Oct Down', kind:'filter', params:[
+    { key:'mix', min:0, max:1, def:0.2 }
+  ]},
+  { id:'octup', name:'Oct Up', kind:'filter', params:[
+    { key:'mix', min:0, max:1, def:0.16 }
+  ]},
+  { id:'resonant', name:'Resonant', kind:'filter', params:[
+    { key:'hz', min:200, max:4000, def:800 },
+    { key:'gain', min:0, max:10, def:4 }
+  ]},
+  { id:'smear', name:'Smear', kind:'delay', params:[
+    { key:'mix', min:0, max:1, def:0.3 },
+    { key:'feedback', min:0, max:0.6, def:0.25 }
+  ]},
+  { id:'dust', name:'Dust', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.2 }
+  ]},
+  { id:'tape2', name:'Tape II', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.34 },
+    { key:'dull', min:0, max:1, def:0.3 }
+  ]},
+  { id:'limiter2', name:'Limiter II', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.45 }
+  ]},
+  { id:'clip2', name:'Clip II', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.4 }
+  ]},
+  { id:'air2', name:'Air II', kind:'shelf', params:[
+    { key:'gain', min:0, max:8, def:2.1 }
+  ]},
+  { id:'width3', name:'Width III', kind:'width', params:[
+    { key:'amount', min:0, max:1, def:0.48 }
+  ]},
+  { id:'hall2', name:'Hall II', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.26 },
+    { key:'decay', min:1, max:5, def:2 }
+  ]},
+  { id:'room2', name:'Room II', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.2 }
+  ]},
+  { id:'delay2', name:'Delay II', kind:'delay', params:[
+    { key:'mix', min:0, max:1, def:0.24 },
+    { key:'feedback', min:0, max:0.7, def:0.3 }
+  ]},
+  { id:'phaser2', name:'Phaser II', kind:'mod', params:[
+    { key:'rate', min:0.05, max:2, def:0.35 },
+    { key:'mix', min:0, max:1, def:0.3 }
+  ]},
+  { id:'chorus2', name:'Chorus II', kind:'mod', params:[
+    { key:'rate', min:0.1, max:3, def:0.7 },
+    { key:'mix', min:0, max:1, def:0.3 }
+  ]},
+  { id:'vibrato2', name:'Vibrato II', kind:'mod', params:[
+    { key:'rate', min:1, max:8, def:4 },
+    { key:'depth', min:0, max:1, def:0.25 }
+  ]},
+  { id:'pan2', name:'Pan II', kind:'width', params:[
+    { key:'rate', min:0.1, max:2, def:0.4 },
+    { key:'depth', min:0, max:1, def:0.5 }
+  ]},
+  { id:'trem2', name:'Trem II', kind:'gate', params:[
+    { key:'rate', min:0.5, max:8, def:2.5 },
+    { key:'depth', min:0, max:1, def:0.4 }
+  ]},
+  { id:'lpf2', name:'Low-Pass II', kind:'filter', params:[
+    { key:'hz', min:800, max:14000, def:7000 }
+  ]},
+  { id:'hpf2', name:'High-Pass II', kind:'filter', params:[
+    { key:'hz', min:20, max:500, def:90 }
+  ]},
+  { id:'drive2', name:'Drive II', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.28 },
+    { key:'tone', min:800, max:12000, def:5000 }
+  ]},
+  { id:'grit2', name:'Grit II', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.36 }
+  ]},
+  { id:'haze2', name:'Haze II', kind:'filter', params:[
+    { key:'hz', min:600, max:6000, def:1800 },
+    { key:'mix', min:0, max:1, def:0.28 }
+  ]},
+  { id:'rot2', name:'Rot II', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.3 }
+  ]},
+  { id:'melt2', name:'Melt II', kind:'filter', params:[
+    { key:'amount', min:0, max:1, def:0.34 },
+    { key:'tone', min:400, max:8000, def:3000 }
+  ]},
+  { id:'worm2', name:'Worm II', kind:'mod', params:[
+    { key:'rate', min:0.2, max:4, def:1.1 },
+    { key:'depth', min:0, max:1, def:0.4 }
+  ]},
+  { id:'infection2', name:'Infection II', kind:'delay', params:[
+    { key:'mix', min:0, max:1, def:0.28 },
+    { key:'feedback', min:0, max:0.7, def:0.32 }
+  ]},
+  { id:'crawl2', name:'Crawl II', kind:'delay', params:[
+    { key:'mix', min:0, max:1, def:0.22 }
+  ]},
+  { id:'star2', name:'Star II', kind:'shelf', params:[
+    { key:'hz', min:4000, max:14000, def:8000 },
+    { key:'gain', min:0, max:8, def:2 }
+  ]},
+  { id:'tower2', name:'Tower II', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.33 }
+  ]},
+  { id:'vortex2', name:'Vortex II', kind:'delay', params:[
+    { key:'mix', min:0, max:1, def:0.3 },
+    { key:'feedback', min:0, max:0.6, def:0.28 }
+  ]},
+  { id:'seance2', name:'Seance II', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.26 }
+  ]},
+  { id:'fog2', name:'Fog II', kind:'filter', params:[
+    { key:'hz', min:400, max:5000, def:1600 },
+    { key:'mix', min:0, max:1, def:0.3 }
+  ]},
+  { id:'ink2', name:'Ink II', kind:'drive', params:[
+    { key:'amount', min:0, max:1, def:0.24 }
+  ]},
+  { id:'needle3', name:'Needle III', kind:'mod', params:[
+    { key:'rate', min:0.2, max:5, def:1.2 },
+    { key:'depth', min:0, max:1, def:0.28 }
+  ]},
+  { id:'halo3', name:'Halo III', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.22 }
+  ]},
+  { id:'pulse2', name:'Pulse II', kind:'gate', params:[
+    { key:'rate', min:0.5, max:8, def:2 },
+    { key:'depth', min:0, max:1, def:0.42 }
+  ]},
+  { id:'ripple3', name:'Ripple III', kind:'mod', params:[
+    { key:'rate', min:0.2, max:3, def:0.8 },
+    { key:'depth', min:0, max:1, def:0.32 }
+  ]},
+  { id:'orbit2', name:'Orbit II', kind:'width', params:[
+    { key:'rate', min:0.05, max:1.5, def:0.3 },
+    { key:'depth', min:0, max:1, def:0.4 }
+  ]},
+  { id:'choir2', name:'Choir II', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.24 }
+  ]},
+  { id:'plate2', name:'Plate II', kind:'verb', params:[
+    { key:'mix', min:0, max:1, def:0.2 }
+  ]},
+  { id:'comb2', name:'Comb II', kind:'delay', params:[
+    { key:'mix', min:0, max:1, def:0.18 }
+  ]},
+  { id:'formant2', name:'Formant II', kind:'filter', params:[
+    { key:'hz', min:300, max:1800, def:700 },
+    { key:'gain', min:0, max:8, def:3 }
+  ]}
+];
+
+const MAX_SLOTS = 16;
+let slots = [];
+let activeSlot = -1;
+let catalog = [];
+let fxState = {};
+let fxLock = {};
+let fxChain = []; // ON plugins, newest at the front so it sits at the top
+function chainAdd(id){
+  if (!id) return;
+  fxChain = (fxChain || []).filter(x => x !== id);
+  fxChain.unshift(id);
+}
+function chainRemove(id){
+  fxChain = (fxChain || []).filter(x => x !== id);
+}
+function chainMove(id, dir){
+  const arr = fxChain || [];
+  const i = arr.indexOf(id);
+  if (i < 0) return;
+  const j = i + (dir < 0 ? -1 : 1);
+  if (j < 0 || j >= arr.length) return;
+  const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+}
+function randomizeChainOrder(){
+  const on = (fxChain || []).filter(id => fxState[id] && fxState[id].on);
+  for (let i = on.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = on[i]; on[i] = on[j]; on[j] = t;
+  }
+  fxChain = on.slice();
+}
+let bpm = 120;
+let looping = true;
+let nightOn = false, sleepOn = false, suicideOn = false;
+let audioCtx = null, playing = false, sources = [];
+let liveRack = null;
+let _modeTap = null;
+
+FX_DEFS.forEach(d => {
+  fxState[d.id] = { on:false };
+  d.params.forEach(p => { fxState[d.id][p.key] = p.def; });
+  fxLock[d.id] = false;
+});
+
+function setStatus(m){ document.getElementById('status').textContent = m; }
+function createLowLagAudioContext(){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  try { return new AC({ latencyHint:'interactive', sampleRate:48000 }); }
+  catch(e){ try { return new AC({ latencyHint:'interactive' }); } catch(e2){ return new AC(); } }
+}
+function ensureCtx(){
+  if (!audioCtx) audioCtx = createLowLagAudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function makeDistortionCurve(amount){
+  const n=256, c=new Float32Array(n), k=amount*12;
+  for (let i=0;i<n;i++){ const x=i/(n-1)*2-1; c[i]=(1+k)*x/(1+k*Math.abs(x)); }
+  return c;
+}
+function makeImpulse(ctx, decay){
+  const sr=ctx.sampleRate, len=Math.max(1, Math.floor(sr*decay));
+  const buf=ctx.createBuffer(2,len,sr);
+  for (let c=0;c<2;c++){
+    const d=buf.getChannelData(c);
+    for (let i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len, 2.2);
+  }
+  return buf;
+}
+
+function applyRack(ctx, dest){
+  const input = ctx.createGain();
+  let node = input;
+  // Live-controllable AudioParams while playing (master FX rack)
+  liveRack = { ctx: ctx, nodes: {}, lfos: [] };
+
+  function reg(id, key, audioParam, kind){
+    if (!liveRack.nodes[id]) liveRack.nodes[id] = {};
+    liveRack.nodes[id][key] = { param: audioParam, kind: kind || 'value' };
+  }
+  function trackLfo(osc){
+    liveRack.lfos.push(osc);
+    try { sources.push(osc); } catch(_){}
+  }
+
+  const S = fxState;
+  const applyers = {};
+  function take(id, fn){ applyers[id] = fn; }
+
+  take('predelay', function(){
+  if (S.predelay.on){
+    const d=ctx.createDelay(0.05); d.delayTime.value=(S.predelay.ms||1)/1000;
+    reg('predelay','ms', d.delayTime, 'ms');
+    node.connect(d); node=d;
+  }
+  });
+  take('fadeout', function(){
+  if (S.fadeout && S.fadeout.on){
+    const g=ctx.createGain();
+    const now=ctx.currentTime;
+    const atk=Math.max(0.001, S.fadeout.attack||0.02);
+    const rel=Math.max(0.01, S.fadeout.release||0.35);
+    const body=Math.max(0.02, S.fadeout.body||1.1);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.linearRampToValueAtTime(1, now+atk);
+    g.gain.setValueAtTime(1, now+atk+body);
+    g.gain.linearRampToValueAtTime(0.0001, now+atk+body+rel);
+    liveRack.nodes.fadeout = liveRack.nodes.fadeout || {};
+    liveRack.nodes.fadeout._gain = g;
+    liveRack.nodes.fadeout._shape = function(){
+      const t=ctx.currentTime;
+      const a=Math.max(0.001, fxState.fadeout.attack||0.02);
+      const r=Math.max(0.01, fxState.fadeout.release||0.35);
+      const b=Math.max(0.02, fxState.fadeout.body||1.1);
+      try {
+        g.gain.cancelScheduledValues(t);
+        g.gain.setValueAtTime(Math.max(0.0001, g.gain.value), t);
+        g.gain.linearRampToValueAtTime(1, t+a);
+        g.gain.setValueAtTime(1, t+a+b);
+        g.gain.linearRampToValueAtTime(0.0001, t+a+b+r);
+      } catch(_){}
+    };
+    node.connect(g); node=g;
+  }
+  });
+  take('warm', function(){
+  if (S.warm.on){
+    const f=ctx.createBiquadFilter(); f.type='lowshelf'; f.frequency.value=140; f.gain.value=S.warm.gain||1;
+    reg('warm','gain', f.gain, 'value');
+    node.connect(f); node=f;
+  }
+  });
+  take('drive', function(){
+  if (S.drive.on){
+    const sh=ctx.createWaveShaper(); sh.curve=makeDistortionCurve(S.drive.amount||0.2);
+    const ton=ctx.createBiquadFilter(); ton.type='lowpass'; ton.frequency.value=S.drive.tone||4000;
+    reg('drive','tone', ton.frequency, 'value');
+    liveRack.nodes.drive = liveRack.nodes.drive || {};
+    liveRack.nodes.drive._shaper = sh;
+    liveRack.nodes.drive._curveFn = function(amt){ sh.curve = makeDistortionCurve(amt||0.2); };
+    node.connect(sh); sh.connect(ton); node=ton;
+  }
+  });
+  take('hpf', function(){
+  if (S.hpf.on){
+    const f=ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=S.hpf.hz||80;
+    reg('hpf','hz', f.frequency, 'value');
+    node.connect(f); node=f;
+  }
+  });
+  take('lpf', function(){
+  if (S.lpf.on){
+    const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=S.lpf.hz||9000;
+    reg('lpf','hz', f.frequency, 'value');
+    node.connect(f); node=f;
+  }
+  });
+  take('glue', function(){
+  if (S.glue.on){
+    const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=S.glue.hz||800; f.gain.value=S.glue.gain||2; f.Q.value=0.7;
+    reg('glue','hz', f.frequency, 'value'); reg('glue','gain', f.gain, 'value');
+    node.connect(f); node=f;
+  }
+  });
+  take('formant', function(){
+  if (S.formant.on){
+    const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=S.formant.hz||900; f.gain.value=S.formant.gain||3; f.Q.value=2.2;
+    reg('formant','hz', f.frequency, 'value'); reg('formant','gain', f.gain, 'value');
+    node.connect(f); node=f;
+  }
+  });
+  take('phone', function(){
+  if (S.phone.on && S.phone.amount>0.02){
+    const a=S.phone.amount;
+    const dry=ctx.createGain(); dry.gain.value=1-a;
+    const wet=ctx.createGain(); wet.gain.value=a;
+    const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=400;
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=2800;
+    const pk=ctx.createBiquadFilter(); pk.type='peaking'; pk.frequency.value=1350; pk.gain.value=5; pk.Q.value=0.9;
+    const mix=ctx.createGain();
+    reg('phone','amount', wet.gain, 'wetdry');
+    liveRack.nodes.phone = liveRack.nodes.phone || {};
+    liveRack.nodes.phone._dry = dry.gain;
+    node.connect(dry); dry.connect(mix);
+    node.connect(hp); hp.connect(pk); pk.connect(lp); lp.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('crush', function(){
+  if (S.crush.on && S.crush.amount>0.02){
+    const amt=S.crush.amount;
+    const sh=ctx.createWaveShaper();
+    const bits=Math.max(4, Math.round(12-amt*8));
+    const levels=Math.pow(2,bits);
+    const c=new Float32Array(256);
+    for(let i=0;i<256;i++){ const x=i/255*2-1; c[i]=Math.round(x*(levels/2))/(levels/2); }
+    sh.curve=c;
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=16000-amt*11000;
+    reg('crush','amount', lp.frequency, 'crushLp');
+    liveRack.nodes.crush = liveRack.nodes.crush || {};
+    liveRack.nodes.crush._shaper = sh;
+    node.connect(sh); sh.connect(lp); node=lp;
+  }
+  });
+  take('chorus', function(){
+  if (S.chorus.on && S.chorus.mix>0.01){
+    const dry=ctx.createGain(); dry.gain.value=1-S.chorus.mix;
+    const wet=ctx.createGain(); wet.gain.value=S.chorus.mix;
+    const d=ctx.createDelay(0.05); d.delayTime.value=0.012;
+    const lfo=ctx.createOscillator(); lfo.frequency.value=S.chorus.rate||0.8;
+    const lg=ctx.createGain(); lg.gain.value=S.chorus.depth||0.003;
+    lfo.connect(lg); lg.connect(d.delayTime); try{lfo.start()}catch(_){}
+    trackLfo(lfo);
+    reg('chorus','mix', wet.gain, 'wetdry'); reg('chorus','rate', lfo.frequency, 'value'); reg('chorus','depth', lg.gain, 'value');
+    liveRack.nodes.chorus._dry = dry.gain;
+    const mix=ctx.createGain();
+    node.connect(dry); dry.connect(mix);
+    node.connect(d); d.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('flanger', function(){
+  if (S.flanger.on && S.flanger.mix>0.01){
+    const dry=ctx.createGain(); dry.gain.value=1-S.flanger.mix;
+    const wet=ctx.createGain(); wet.gain.value=S.flanger.mix;
+    const d=ctx.createDelay(0.02); d.delayTime.value=0.005;
+    const lfo=ctx.createOscillator(); lfo.frequency.value=S.flanger.rate||0.25;
+    const lg=ctx.createGain(); lg.gain.value=0.003;
+    lfo.connect(lg); lg.connect(d.delayTime); try{lfo.start()}catch(_){}
+    trackLfo(lfo);
+    reg('flanger','mix', wet.gain, 'wetdry'); reg('flanger','rate', lfo.frequency, 'value');
+    liveRack.nodes.flanger._dry = dry.gain;
+    const mix=ctx.createGain();
+    node.connect(dry); dry.connect(mix);
+    node.connect(d); d.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('phaser', function(){
+  if (S.phaser.on && S.phaser.mix>0.01){
+    const dry=ctx.createGain(); dry.gain.value=1-S.phaser.mix;
+    const wet=ctx.createGain(); wet.gain.value=S.phaser.mix;
+    let p=node;
+    for(let i=0;i<4;i++){
+      const f=ctx.createBiquadFilter(); f.type='allpass'; f.frequency.value=400+i*280;
+      p.connect(f); p=f;
+    }
+    const lfo=ctx.createOscillator(); lfo.frequency.value=S.phaser.rate||0.3;
+    try{lfo.start()}catch(_){}
+    trackLfo(lfo);
+    reg('phaser','mix', wet.gain, 'wetdry'); reg('phaser','rate', lfo.frequency, 'value');
+    liveRack.nodes.phaser._dry = dry.gain;
+    const mix=ctx.createGain();
+    node.connect(dry); dry.connect(mix);
+    p.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('vibrato', function(){
+  if (S.vibrato.on){
+    const d=ctx.createDelay(0.02); d.delayTime.value=0.006;
+    const lfo=ctx.createOscillator(); lfo.frequency.value=S.vibrato.rate||5;
+    const lg=ctx.createGain(); lg.gain.value=S.vibrato.depth||0.002;
+    lfo.connect(lg); lg.connect(d.delayTime); try{lfo.start()}catch(_){}
+    trackLfo(lfo);
+    reg('vibrato','rate', lfo.frequency, 'value'); reg('vibrato','depth', lg.gain, 'value');
+    node.connect(d); node=d;
+  }
+  });
+  take('tape', function(){
+  if (S.tape.on){
+    const d=ctx.createDelay(0.03); d.delayTime.value=0.008;
+    const lfo=ctx.createOscillator(); lfo.frequency.value=0.35+(S.tape.wow||0)*0.8;
+    const lg=ctx.createGain(); lg.gain.value=0.001+(S.tape.wow||0)*0.004;
+    lfo.connect(lg); lg.connect(d.delayTime); try{lfo.start()}catch(_){}
+    trackLfo(lfo);
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=14000-(S.tape.dull||0)*8000;
+    reg('tape','dull', lp.frequency, 'tapeDull');
+    liveRack.nodes.tape = liveRack.nodes.tape || {};
+    liveRack.nodes.tape._lfo = lfo.frequency; liveRack.nodes.tape._lg = lg.gain;
+    node.connect(d); d.connect(lp); node=lp;
+  }
+  });
+  take('trem', function(){
+  if (S.trem.on && S.trem.depth>0.02){
+    const g=ctx.createGain(); g.gain.value=1-S.trem.depth*0.5;
+    const lfo=ctx.createOscillator(); lfo.frequency.value=noteToHz(S.trem.note||'1/8', bpm);
+    const lg=ctx.createGain(); lg.gain.value=S.trem.depth*0.5;
+    lfo.connect(lg); lg.connect(g.gain); try{lfo.start()}catch(_){}
+    trackLfo(lfo);
+    reg('trem','depth', lg.gain, 'tremDepth');
+    liveRack.nodes.trem._base = g.gain; liveRack.nodes.trem._lfo = lfo.frequency;
+    node.connect(g); node=g;
+  }
+  });
+  take('stutter', function(){
+  if (S.stutter.on && S.stutter.depth>0.02){
+    const g=ctx.createGain();
+    const osc=ctx.createOscillator(); osc.type='square';
+    osc.frequency.value=noteToHz(S.stutter.note||'1/16', bpm);
+    const lg=ctx.createGain(); lg.gain.value=S.stutter.depth*0.5;
+    g.gain.value=1-S.stutter.depth*0.35;
+    osc.connect(lg); lg.connect(g.gain); try{osc.start()}catch(_){}
+    trackLfo(osc);
+    reg('stutter','depth', lg.gain, 'value');
+    liveRack.nodes.stutter._lfo = osc.frequency;
+    node.connect(g); node=g;
+  }
+  });
+  take('pan', function(){
+  if (S.pan.on && ctx.createStereoPanner){
+    const p=ctx.createStereoPanner();
+    const lfo=ctx.createOscillator(); lfo.frequency.value=noteToHz(S.pan.note||'1/4', bpm);
+    const lg=ctx.createGain(); lg.gain.value=S.pan.depth||0.5;
+    lfo.connect(lg); lg.connect(p.pan); try{lfo.start()}catch(_){}
+    trackLfo(lfo);
+    reg('pan','depth', lg.gain, 'value');
+    liveRack.nodes.pan._lfo = lfo.frequency;
+    node.connect(p); node=p;
+  }
+  });
+  take('width', function(){
+  if (S.width.on && S.width.amount>0.02 && ctx.createStereoPanner){
+    const split=ctx.createChannelSplitter(2);
+    const merge=ctx.createChannelMerger(2);
+    const l=ctx.createGain(), r=ctx.createGain();
+    const w=0.5+S.width.amount*0.5;
+    l.gain.value=w; r.gain.value=w;
+    reg('width','amount', l.gain, 'width');
+    liveRack.nodes.width._r = r.gain;
+    node.connect(split);
+    split.connect(l,0); split.connect(r,1);
+    l.connect(merge,0,0); r.connect(merge,0,1);
+    node=merge;
+  }
+  });
+  take('delay', function(){
+  if (S.delay.on && S.delay.mix>0.01){
+    const dry=ctx.createGain(); dry.gain.value=1-S.delay.mix;
+    const wet=ctx.createGain(); wet.gain.value=S.delay.mix;
+    const d=ctx.createDelay(1.5); d.delayTime.value=noteToSec(S.delay.note||'1/8', bpm);
+    const fb=ctx.createGain(); fb.gain.value=S.delay.feedback||0.28;
+    const mix=ctx.createGain();
+    reg('delay','mix', wet.gain, 'wetdry'); reg('delay','feedback', fb.gain, 'value');
+    liveRack.nodes.delay._dry = dry.gain; liveRack.nodes.delay._time = d.delayTime;
+    node.connect(dry); dry.connect(mix);
+    node.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('slap', function(){
+  if (S.slap.on && S.slap.mix>0.01){
+    const dry=ctx.createGain(); dry.gain.value=1-S.slap.mix;
+    const wet=ctx.createGain(); wet.gain.value=S.slap.mix;
+    const d=ctx.createDelay(0.4); d.delayTime.value=noteToSec(S.slap.note||'1/16', bpm);
+    const mix=ctx.createGain();
+    reg('slap','mix', wet.gain, 'wetdry');
+    liveRack.nodes.slap._dry = dry.gain; liveRack.nodes.slap._time = d.delayTime;
+    node.connect(dry); dry.connect(mix);
+    node.connect(d); d.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('comb', function(){
+  if (S.comb.on && S.comb.mix>0.01){
+    const dry=ctx.createGain(); dry.gain.value=1-S.comb.mix;
+    const wet=ctx.createGain(); wet.gain.value=S.comb.mix;
+    const d=ctx.createDelay(0.05); d.delayTime.value=0.008;
+    const mix=ctx.createGain();
+    reg('comb','mix', wet.gain, 'wetdry');
+    liveRack.nodes.comb._dry = dry.gain;
+    node.connect(dry); dry.connect(mix);
+    node.connect(d); d.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('plate', function(){
+  if (S.plate.on && S.plate.mix>0.01){
+    const conv=ctx.createConvolver(); conv.buffer=makeImpulse(ctx, 0.28);
+    const dry=ctx.createGain(); dry.gain.value=1-S.plate.mix;
+    const wet=ctx.createGain(); wet.gain.value=S.plate.mix;
+    const mix=ctx.createGain();
+    reg('plate','mix', wet.gain, 'wetdry');
+    liveRack.nodes.plate._dry = dry.gain;
+    node.connect(dry); dry.connect(mix);
+    node.connect(conv); conv.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('reverb', function(){
+  if (S.reverb.on && S.reverb.mix>0.01){
+    const conv=ctx.createConvolver(); conv.buffer=makeImpulse(ctx, S.reverb.decay||1.6);
+    const dry=ctx.createGain(); dry.gain.value=1-S.reverb.mix*0.85;
+    const wet=ctx.createGain(); wet.gain.value=S.reverb.mix;
+    const mix=ctx.createGain();
+    reg('reverb','mix', wet.gain, 'wetdry');
+    liveRack.nodes.reverb._dry = dry.gain;
+    liveRack.nodes.reverb._needsRebuild = true; // decay needs new impulse
+    node.connect(dry); dry.connect(mix);
+    node.connect(conv); conv.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('grain', function(){
+  if (S.grain.on && S.grain.amount>0.05){
+    const d=ctx.createDelay(0.12); d.delayTime.value=0.02+S.grain.amount*0.06;
+    const lfo=ctx.createOscillator(); lfo.type='sawtooth'; lfo.frequency.value=8+S.grain.amount*14;
+    const lg=ctx.createGain(); lg.gain.value=0.01*S.grain.amount;
+    lfo.connect(lg); lg.connect(d.delayTime); try{lfo.start()}catch(_){}
+    trackLfo(lfo);
+    const mix=ctx.createGain();
+    const dry=ctx.createGain(); dry.gain.value=1-S.grain.amount*0.5;
+    const wet=ctx.createGain(); wet.gain.value=S.grain.amount*0.5;
+    reg('grain','amount', wet.gain, 'grain');
+    liveRack.nodes.grain._dry = dry.gain; liveRack.nodes.grain._lfo = lfo.frequency; liveRack.nodes.grain._lg = lg.gain;
+    node.connect(dry); dry.connect(mix);
+    node.connect(d); d.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+
+  /* —— New master FX —— */
+  });
+  take('melt', function(){
+  if (S.melt && S.melt.on && S.melt.amount>0.02){
+    const a=S.melt.amount;
+    const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=40+a*400;
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=S.melt.tone||4500; lp.Q.value=0.7+a*2;
+    reg('melt','amount', hp.frequency, 'meltHp');
+    reg('melt','tone', lp.frequency, 'value');
+    node.connect(hp); hp.connect(lp); node=lp;
+  }
+  });
+  take('worm', function(){
+  if (S.worm && S.worm.on && S.worm.mix>0.01){
+    const dry=ctx.createGain(); dry.gain.value=1-S.worm.mix;
+    const wet=ctx.createGain(); wet.gain.value=S.worm.mix;
+    const d=ctx.createDelay(0.05); d.delayTime.value=0.012;
+    const lfo=ctx.createOscillator(); lfo.frequency.value=S.worm.rate||1.2;
+    const lg=ctx.createGain(); lg.gain.value=0.002+S.worm.depth*0.01;
+    lfo.connect(lg); lg.connect(d.delayTime); try{lfo.start()}catch(_){}
+    trackLfo(lfo);
+    reg('worm','mix', wet.gain, 'wetdry'); reg('worm','rate', lfo.frequency, 'value'); reg('worm','depth', lg.gain, 'wormDepth');
+    liveRack.nodes.worm._dry = dry.gain;
+    const mix=ctx.createGain();
+    node.connect(dry); dry.connect(mix);
+    node.connect(d); d.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('rot', function(){
+  if (S.rot && S.rot.on && S.rot.amount>0.02){
+    const sh=ctx.createWaveShaper();
+    const amt=S.rot.amount;
+    const curve=new Float32Array(256);
+    for(let i=0;i<256;i++){ const x=i/128-1; curve[i]=Math.tanh(x*(1.2+amt*2.8))*(0.9+amt*0.1); }
+    sh.curve=curve; sh.oversample='2x';
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=S.rot.dark||2800; lp.Q.value=0.5+amt*3;
+    reg('rot','dark', lp.frequency, 'value');
+    liveRack.nodes.rot = liveRack.nodes.rot || {};
+    liveRack.nodes.rot._shaper = sh;
+    node.connect(sh); sh.connect(lp); node=lp;
+  }
+  });
+  take('infection', function(){
+  if (S.infection && S.infection.on && S.infection.mix>0.01){
+    const dry=ctx.createGain(); dry.gain.value=1-S.infection.mix*0.35;
+    const wet=ctx.createGain(); wet.gain.value=S.infection.mix;
+    const d=ctx.createDelay(1.0); d.delayTime.value=S.infection.time||0.18;
+    const fb=ctx.createGain(); fb.gain.value=S.infection.feedback||0.32;
+    const mix=ctx.createGain();
+    reg('infection','mix', wet.gain, 'wetdry'); reg('infection','feedback', fb.gain, 'value'); reg('infection','time', d.delayTime, 'value');
+    liveRack.nodes.infection._dry = dry.gain;
+    node.connect(dry); dry.connect(mix);
+    node.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('crawl', function(){
+  if (S.crawl && S.crawl.on && S.crawl.mix>0.01){
+    const dry=ctx.createGain(); dry.gain.value=1-S.crawl.mix*0.3;
+    const wet=ctx.createGain(); wet.gain.value=S.crawl.mix;
+    const d=ctx.createDelay(0.8); d.delayTime.value=S.crawl.time||0.22;
+    const mix=ctx.createGain();
+    reg('crawl','mix', wet.gain, 'wetdry'); reg('crawl','time', d.delayTime, 'value');
+    liveRack.nodes.crawl._dry = dry.gain;
+    node.connect(dry); dry.connect(mix);
+    node.connect(d); d.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('air', function(){
+  if (S.air && S.air.on){
+    const f=ctx.createBiquadFilter(); f.type='highshelf'; f.frequency.value=S.air.hz||6500; f.gain.value=S.air.gain||3.5;
+    reg('air','hz', f.frequency, 'value'); reg('air','gain', f.gain, 'value');
+    node.connect(f); node=f;
+  }
+  });
+  take('grit', function(){
+  if (S.grit && S.grit.on && S.grit.amount>0.02){
+    const sh=ctx.createWaveShaper(); sh.curve=makeDistortionCurve(S.grit.amount); sh.oversample='2x';
+    const d=ctx.createDelay(0.4); d.delayTime.value=0.12;
+    const fb=ctx.createGain(); fb.gain.value=S.grit.feedback||0.22;
+    const wet=ctx.createGain(); wet.gain.value=0.3;
+    const mix=ctx.createGain();
+    liveRack.nodes.grit = { _shaper: sh };
+    reg('grit','feedback', fb.gain, 'value');
+    node.connect(sh); sh.connect(mix);
+    sh.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('haze', function(){
+  if (S.haze && S.haze.on){
+    const dry=ctx.createGain(); dry.gain.value=1-(S.haze.mix||0.55)*0.7;
+    const wet=ctx.createGain(); wet.gain.value=S.haze.mix||0.55;
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=S.haze.hz||2200; lp.Q.value=0.6;
+    const mix=ctx.createGain();
+    reg('haze','hz', lp.frequency, 'value'); reg('haze','mix', wet.gain, 'wetdry');
+    liveRack.nodes.haze._dry = dry.gain;
+    node.connect(dry); dry.connect(mix);
+    node.connect(lp); lp.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+  });
+  take('bite', function(){
+  if (S.bite && S.bite.on && S.bite.amount>0.02){
+    const dry=ctx.createGain(); dry.gain.value=1-S.bite.amount*0.5;
+    const wet=ctx.createGain(); wet.gain.value=S.bite.amount;
+    const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=S.bite.hz||480; hp.Q.value=1.2;
+    const sh=ctx.createWaveShaper(); sh.curve=makeDistortionCurve(0.2+S.bite.amount*0.4);
+    const mix=ctx.createGain();
+    reg('bite','hz', hp.frequency, 'value'); reg('bite','amount', wet.gain, 'wetdry');
+    liveRack.nodes.bite._dry = dry.gain;
+    node.connect(dry); dry.connect(mix);
+    node.connect(hp); hp.connect(sh); sh.connect(wet); wet.connect(mix);
+    node=mix;
+  }
+
+
+  });
+
+
+  function euclidPat(steps, hits) {
+    steps = Math.max(1, steps | 0);
+    hits = Math.max(0, Math.min(steps, hits | 0));
+    const pat = new Array(steps).fill(0);
+    let bucket = 0;
+    for (let i = 0; i < steps; i++) {
+      bucket += hits;
+      if (bucket >= steps) { bucket -= steps; pat[i] = 1; }
+    }
+    return pat;
+  }
+  take('vortex', function(){
+    if (!(S.vortex && S.vortex.on)) return;
+    const pull = S.vortex.pull != null ? S.vortex.pull : 0.45;
+    const dry = ctx.createGain(); dry.gain.value = 1 - pull * 0.55;
+    const wet = ctx.createGain(); wet.gain.value = 0.3 + pull * 0.45;
+    const dark = ctx.createBiquadFilter(); dark.type = 'lowpass'; dark.frequency.value = S.vortex.dark || 4200;
+    const mix = ctx.createGain();
+    node.connect(dry); dry.connect(mix);
+    for (let i = 0; i < 3; i++) {
+      const d = ctx.createDelay(1.2);
+      d.delayTime.value = 0.11 * (1 + i * 0.38);
+      const fb = ctx.createGain(); fb.gain.value = Math.min(0.72, 0.22 + pull * 0.35) * (1 - i * 0.12);
+      const pan = ctx.createStereoPanner(); pan.pan.value = [-0.65, 0, 0.65][i];
+      const lfo = ctx.createOscillator(); lfo.frequency.value = (S.vortex.spin || 1.4) * (1 + i * 0.15);
+      const lg = ctx.createGain(); lg.gain.value = 0.01 + pull * 0.02;
+      lfo.connect(lg); lg.connect(d.delayTime); try { lfo.start(); } catch (_) {}
+      trackLfo(lfo);
+      node.connect(d); d.connect(fb); fb.connect(d); d.connect(pan); pan.connect(wet);
+    }
+    wet.connect(dark); dark.connect(mix);
+    node = mix;
+  });
+  take('seance', function(){
+    if (!(S.seance && S.seance.on)) return;
+    const hz = S.seance.hz || 800;
+    const room = S.seance.room != null ? S.seance.room : 0.35;
+    const spread = S.seance.spread != null ? S.seance.spread : 0.4;
+    const dry = ctx.createGain(); dry.gain.value = 1 - room * 0.3;
+    const wet = ctx.createGain(); wet.gain.value = 0.25 + room * 0.55;
+    const mix = ctx.createGain();
+    node.connect(dry); dry.connect(mix);
+    [1, 1.45, 2.2].forEach(function(mul, i){
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = hz * mul * (1 + (i - 1) * spread * 0.04);
+      bp.Q.value = 2.8 + spread * 2;
+      const g = ctx.createGain(); g.gain.value = 0.5 / (1 + i * 0.3);
+      node.connect(bp); bp.connect(g); g.connect(wet);
+    });
+    wet.connect(mix);
+    node = mix;
+  });
+  take('ripple', function(){
+    if (!(S.ripple && S.ripple.on)) return;
+    const mixAmt = S.ripple.mix != null ? S.ripple.mix : 0.4;
+    const dry = ctx.createGain(); dry.gain.value = 1 - mixAmt * 0.8;
+    const wet = ctx.createGain(); wet.gain.value = mixAmt;
+    const d = ctx.createDelay(1.2); d.delayTime.value = Math.max(0.02, S.ripple.size || 0.09);
+    const d2 = ctx.createDelay(1.2); d2.delayTime.value = Math.max(0.03, (S.ripple.size || 0.09) * 1.65);
+    const fb = ctx.createGain(); fb.gain.value = Math.min(0.7, S.ripple.feedback || 0.22);
+    const mix = ctx.createGain();
+    node.connect(dry); dry.connect(mix);
+    node.connect(d); d.connect(fb); fb.connect(d); d.connect(d2); d2.connect(wet); wet.connect(mix);
+    node = mix;
+  });
+  take('halo', function(){
+    if (!(S.halo && S.halo.on)) return;
+    const mixAmt = S.halo.mix != null ? S.halo.mix : 0.4;
+    const shine = S.halo.shine != null ? S.halo.shine : 0.45;
+    const dry = ctx.createGain(); dry.gain.value = 1 - mixAmt * 0.75;
+    const wet = ctx.createGain(); wet.gain.value = mixAmt;
+    const air = ctx.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 3200; air.gain.value = shine * 8;
+    const d1 = ctx.createDelay(1.5); d1.delayTime.value = 0.16 + (S.halo.decay || 0.28) * 0.45;
+    const d2 = ctx.createDelay(1.5); d2.delayTime.value = 0.27 + (S.halo.decay || 0.28) * 0.35;
+    const fb = ctx.createGain(); fb.gain.value = Math.min(0.75, 0.22 + (S.halo.decay || 0.28) * 0.4);
+    const mix = ctx.createGain();
+    node.connect(dry); dry.connect(mix);
+    node.connect(air); air.connect(d1); air.connect(d2);
+    d1.connect(fb); fb.connect(d2); d2.connect(fb);
+    d1.connect(wet); d2.connect(wet); wet.connect(mix);
+    node = mix;
+  });
+  take('pulse', function(){
+    if (!(S.pulse && S.pulse.on)) return;
+    const g = ctx.createGain();
+    const steps = Math.max(3, Math.round(S.pulse.steps || 8));
+    const hits = Math.max(1, Math.min(steps, Math.round(S.pulse.hits || 3)));
+    const depth = S.pulse.depth != null ? S.pulse.depth : 0.7;
+    const pat = euclidPat(steps, hits);
+    const step = (60 / (bpm || 120)) / 4;
+    const now = ctx.currentTime || 0;
+    g.gain.setValueAtTime(1, now);
+    for (let i = 0; i < steps * 80; i++) {
+      const peak = pat[i % steps] ? 1 : Math.max(0.02, 1 - depth);
+      g.gain.setValueAtTime(peak, now + i * step);
+    }
+    node.connect(g); node = g;
+  });
+  take('fog', function(){
+    if (!(S.fog && S.fog.on)) return;
+    const mixAmt = S.fog.mix != null ? S.fog.mix : 0.5;
+    const dry = ctx.createGain(); dry.gain.value = 1 - mixAmt * 0.75;
+    const wet = ctx.createGain(); wet.gain.value = mixAmt;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = S.fog.tone || 1800;
+    const d1 = ctx.createDelay(0.5); d1.delayTime.value = 0.04 + (S.fog.drift || 0.3) * 0.06;
+    const d2 = ctx.createDelay(0.5); d2.delayTime.value = 0.07 + (S.fog.drift || 0.3) * 0.09;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.15 + (S.fog.drift || 0) * 0.4;
+    const lg = ctx.createGain(); lg.gain.value = 0.004 + (S.fog.drift || 0) * 0.012;
+    lfo.connect(lg); lg.connect(d1.delayTime); try { lfo.start(); } catch (_) {}
+    trackLfo(lfo);
+    const fb = ctx.createGain(); fb.gain.value = 0.25 + (S.fog.drift || 0) * 0.3;
+    const mix = ctx.createGain();
+    node.connect(dry); dry.connect(mix);
+    node.connect(lp); lp.connect(d1); d1.connect(fb); fb.connect(d2); d2.connect(fb); d2.connect(wet); wet.connect(mix);
+    node = mix;
+  });
+  take('needle', function(){
+    if (!(S.needle && S.needle.on)) return;
+    const d = ctx.createDelay(0.08); d.delayTime.value = 0.012;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.25 + (S.needle.wow || 0) * 1.6;
+    const lg = ctx.createGain(); lg.gain.value = 0.001 + (S.needle.wow || 0) * 0.01;
+    lfo.connect(lg); lg.connect(d.delayTime); try { lfo.start(); } catch (_) {}
+    trackLfo(lfo);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass';
+    lp.frequency.value = (S.needle.tone || 4200) * (1 - Math.min(0.85, S.needle.stop || 0) * 0.65);
+    const g = ctx.createGain(); g.gain.value = 1 - Math.min(0.45, (S.needle.stop || 0) * 0.35);
+    node.connect(d); d.connect(lp); lp.connect(g); node = g;
+  });
+  take('ink', function(){
+    if (!(S.ink && S.ink.on)) return;
+    const drive = S.ink.drive != null ? S.ink.drive : 0.3;
+    const sh = ctx.createWaveShaper(); sh.curve = makeDistortionCurve(drive);
+    const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 1800 + (1 - drive) * 5000;
+    const mixAmt = S.ink.mix != null ? S.ink.mix : 0.4;
+    const smear = S.ink.smear != null ? S.ink.smear : 0.35;
+    const dry = ctx.createGain(); dry.gain.value = 1 - mixAmt * 0.45;
+    const wet = ctx.createGain(); wet.gain.value = mixAmt;
+    const d1 = ctx.createDelay(1); d1.delayTime.value = 0.07 + smear * 0.12;
+    const d2 = ctx.createDelay(1); d2.delayTime.value = 0.13 + smear * 0.2;
+    const fb = ctx.createGain(); fb.gain.value = Math.min(0.7, 0.12 + smear * 0.45);
+    const mix = ctx.createGain();
+    node.connect(sh); sh.connect(tone);
+    tone.connect(dry); dry.connect(mix);
+    tone.connect(d1); d1.connect(d2); d2.connect(fb); fb.connect(d1); d1.connect(wet); d2.connect(wet); wet.connect(mix);
+    node = mix;
+  });
+
+
+  take('glue', function(){
+    if (!(S.glue && S.glue.on)) return;
+    const cpr = ctx.createDynamicsCompressor();
+    cpr.threshold.value = -24; cpr.ratio.value = 3; cpr.attack.value = 0.012; cpr.release.value = 0.22;
+    const g = ctx.createGain(); g.gain.value = 1 + (S.glue.makeup || 0.2);
+    node.connect(cpr); cpr.connect(g); node = g;
+  });
+  take('loud', function(){
+    if (!(S.loud && S.loud.on)) return;
+    const cpr = ctx.createDynamicsCompressor();
+    cpr.threshold.value = -16; cpr.ratio.value = 10; cpr.attack.value = 0.003; cpr.release.value = 0.12;
+    const g = ctx.createGain(); g.gain.value = 1 + (S.loud.makeup || 0.28);
+    node.connect(cpr); cpr.connect(g); node = g;
+  });
+  ['softclip','exciter','warmth','satin'].forEach(function(id){
+    take(id, function(){
+      const st = S[id]; if (!(st && st.on)) return;
+      const sh = ctx.createWaveShaper(); sh.curve = makeDistortionCurve(st.amount || 0.22);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = st.tone || 7000;
+      node.connect(sh); sh.connect(lp); node = lp;
+    });
+  });
+  take('tilt', function(){ if (!(S.tilt&&S.tilt.on)) return; const f=ctx.createBiquadFilter(); f.type='lowshelf'; f.frequency.value=S.tilt.hz||700; f.gain.value=S.tilt.gain||1.5; node.connect(f); node=f; });
+  take('basshelf', function(){ if (!(S.basshelf&&S.basshelf.on)) return; const f=ctx.createBiquadFilter(); f.type='lowshelf'; f.frequency.value=S.basshelf.hz||90; f.gain.value=S.basshelf.gain||2; node.connect(f); node=f; });
+  take('airshelf', function(){ if (!(S.airshelf&&S.airshelf.on)) return; const f=ctx.createBiquadFilter(); f.type='highshelf'; f.frequency.value=S.airshelf.hz||8000; f.gain.value=S.airshelf.gain||2.5; node.connect(f); node=f; });
+  take('presence', function(){ if (!(S.presence&&S.presence.on)) return; const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=S.presence.hz||3200; f.gain.value=S.presence.gain||2; node.connect(f); node=f; });
+  take('mud', function(){ if (!(S.mud&&S.mud.on)) return; const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=S.mud.hz||240; f.gain.value=S.mud.gain||-3; f.Q.value=0.7; node.connect(f); node=f; });
+  take('debox', function(){ if (!(S.debox&&S.debox.on)) return; const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=S.debox.hz||320; f.gain.value=S.debox.gain||-2.5; node.connect(f); node=f; });
+  take('notch', function(){ if (!(S.notch&&S.notch.on)) return; const f=ctx.createBiquadFilter(); f.type='notch'; f.frequency.value=S.notch.hz||60; f.Q.value=8; node.connect(f); node=f; });
+  take('widen', function(){ if (!(S.widen&&S.widen.on)) return; const dry=ctx.createGain(); dry.gain.value=1-(S.widen.mix||0.28)*0.4; const wet=ctx.createGain(); wet.gain.value=S.widen.mix||0.28; const d=ctx.createDelay(0.05); d.delayTime.value=0.016; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('monobass', function(){ if (!(S.monobass&&S.monobass.on)) return; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=S.monobass.hz||140; const g=ctx.createGain(); g.gain.value=0.85; node.connect(lp); lp.connect(g); node=g; });
+  take('room', function(){ if (!(S.room&&S.room.on)) return; const wet=ctx.createGain(); wet.gain.value=S.room.mix||0.16; const dry=ctx.createGain(); dry.gain.value=1; const d=ctx.createDelay(0.4); d.delayTime.value=0.05; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('hall', function(){ if (!(S.hall&&S.hall.on)) return; const wet=ctx.createGain(); wet.gain.value=S.hall.mix||0.18; const dry=ctx.createGain(); dry.gain.value=1; const d=ctx.createDelay(1); d.delayTime.value=0.18; const fb=ctx.createGain(); fb.gain.value=0.35; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('duck', function(){ if (!(S.duck&&S.duck.on)) return; const g=ctx.createGain(); g.gain.value=1-(S.duck.depth||0.28)*0.45; node.connect(g); node=g; });
+  take('shimmer', function(){ if (!(S.shimmer&&S.shimmer.on)) return; const dry=ctx.createGain(); dry.gain.value=1; const wet=ctx.createGain(); wet.gain.value=S.shimmer.mix||0.2; const d=ctx.createDelay(0.2); d.delayTime.value=0.04; const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=1800; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(hp); hp.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('chorusbus', function(){ if (!(S.chorusbus&&S.chorusbus.on)) return; const dry=ctx.createGain(); dry.gain.value=1-(S.chorusbus.mix||0.18)*0.4; const wet=ctx.createGain(); wet.gain.value=S.chorusbus.mix||0.18; const d=ctx.createDelay(0.05); d.delayTime.value=0.012; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('focus', function(){ if (!(S.focus&&S.focus.on)) return; const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=1800; f.Q.value=0.8; f.gain.value=S.focus.gain||2.4; node.connect(f); node=f; });
+  take('trim', function(){ if (!(S.trim&&S.trim.on)) return; const g=ctx.createGain(); g.gain.value=S.trim.gain||1; node.connect(g); node=g; });
+  take('balance', function(){ if (!(S.balance&&S.balance.on)) return; const p=ctx.createStereoPanner(); p.pan.value=S.balance.pan||0; node.connect(p); node=p; });
+  take('sheen', function(){ if (!(S.sheen&&S.sheen.on)) return; const g=ctx.createGain(); g.gain.value=S.sheen.gain||1; const f=ctx.createBiquadFilter(); f.type='highshelf'; f.frequency.value=7000; f.gain.value=S.sheen.air||2; node.connect(g); g.connect(f); node=f; });
+
+
+  /* —— +50 FX applyers (normal + master) —— */
+  function _noteSec(note){
+    const map = {'1/2':2,'1/2D':3,'1/4':1,'1/4D':1.5,'1/8':0.5,'1/8D':0.75,'1/16':0.25,'1/16D':0.375};
+    const beats = map[note] != null ? map[note] : 0.5;
+    return (60 / Math.max(40, bpm || 120)) * beats;
+  }
+  function _sat(ctx, amount){
+    const sh = ctx.createWaveShaper();
+    const n = 256, curve = new Float32Array(n);
+    const k = 1 + amount * 4;
+    for (let i=0;i<n;i++){ const x=i/(n/2)-1; curve[i]=Math.tanh(x*k); }
+    sh.curve = curve; sh.oversample='2x';
+    return sh;
+  }
+  take('softsat', function(){ if(!(S.softsat&&S.softsat.on)) return; const a=S.softsat.amount||0.25; const sh=_sat(ctx,a); const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=S.softsat.tone||6000; node.connect(sh); sh.connect(lp); node=lp; });
+  take('edge', function(){ if(!(S.edge&&S.edge.on)) return; const f=ctx.createBiquadFilter(); f.type='highshelf'; f.frequency.value=S.edge.hz||6500; f.gain.value=S.edge.gain||3; node.connect(f); node=f; });
+  take('bloom', function(){ if(!(S.bloom&&S.bloom.on)) return; const mixA=S.bloom.mix||0.22; const dry=ctx.createGain(); dry.gain.value=1-mixA*0.7; const wet=ctx.createGain(); wet.gain.value=mixA; const d=ctx.createDelay(0.5); d.delayTime.value=S.bloom.size||0.14; const fb=ctx.createGain(); fb.gain.value=0.25; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('swirl', function(){ if(!(S.swirl&&S.swirl.on)) return; const f=ctx.createBiquadFilter(); f.type='bandpass'; f.frequency.value=S.swirl.base||1800; f.Q.value=1.2; const lfo=ctx.createOscillator(); lfo.frequency.value=S.swirl.rate||0.25; const lg=ctx.createGain(); lg.gain.value=S.swirl.depth||1200; lfo.connect(lg); lg.connect(f.frequency); try{lfo.start()}catch(_){}; trackLfo(lfo); node.connect(f); node=f; });
+  take('grit', function(){ if(!(S.grit&&S.grit.on)) return; const a=S.grit.amount||0.3; const sh=_sat(ctx,a); const bp=ctx.createBiquadFilter(); bp.type='peaking'; bp.frequency.value=S.grit.hz||1600; bp.gain.value=2+a*4; bp.Q.value=1.2; node.connect(bp); bp.connect(sh); node=sh; });
+  take('haze', function(){ if(!(S.haze&&S.haze.on)) return; const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=S.haze.hz||4200; f.Q.value=0.6; node.connect(f); node=f; });
+  take('ping', function(){ if(!(S.ping&&S.ping.on)) return; const mixA=S.ping.mix||0.2; const dry=ctx.createGain(); dry.gain.value=1-mixA; const wet=ctx.createGain(); wet.gain.value=mixA; const d=ctx.createDelay(1); d.delayTime.value=_noteSec(S.ping.note||'1/16'); const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('drift', function(){ if(!(S.drift&&S.drift.on)) return; const mixA=S.drift.mix||0.28; const dry=ctx.createGain(); dry.gain.value=1-mixA; const wet=ctx.createGain(); wet.gain.value=mixA; const d=ctx.createDelay(0.08); d.delayTime.value=0.02; const lfo=ctx.createOscillator(); lfo.frequency.value=S.drift.rate||0.2; const lg=ctx.createGain(); lg.gain.value=S.drift.depth||0.006; lfo.connect(lg); lg.connect(d.delayTime); try{lfo.start()}catch(_){}; trackLfo(lfo); const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('snap', function(){ if(!(S.snap&&S.snap.on)) return; const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=S.snap.hz||220; const g=ctx.createGain(); g.gain.value=0.7+(S.snap.amount||0.35)*0.5; node.connect(hp); hp.connect(g); node=g; });
+  take('body', function(){ if(!(S.body&&S.body.on)) return; const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=S.body.hz||220; f.Q.value=0.9; f.gain.value=S.body.gain||2.5; node.connect(f); node=f; });
+  take('airlift', function(){ if(!(S.airlift&&S.airlift.on)) return; const f=ctx.createBiquadFilter(); f.type='highshelf'; f.frequency.value=S.airlift.hz||9000; f.gain.value=S.airlift.gain||2.2; node.connect(f); node=f; });
+  take('subboost', function(){ if(!(S.subboost&&S.subboost.on)) return; const f=ctx.createBiquadFilter(); f.type='lowshelf'; f.frequency.value=S.subboost.hz||70; f.gain.value=S.subboost.gain||3; node.connect(f); node=f; });
+  take('notchv', function(){ if(!(S.notchv&&S.notchv.on)) return; const f=ctx.createBiquadFilter(); f.type='notch'; f.frequency.value=S.notchv.hz||900; f.Q.value=S.notchv.q||6; node.connect(f); node=f; });
+  take('ringmod', function(){ if(!(S.ringmod&&S.ringmod.on)) return; const mixA=S.ringmod.mix||0.18; const dry=ctx.createGain(); dry.gain.value=1-mixA; const wet=ctx.createGain(); wet.gain.value=mixA; const g=ctx.createGain(); g.gain.value=0; const lfo=ctx.createOscillator(); lfo.frequency.value=S.ringmod.hz||110; lfo.connect(g.gain); try{lfo.start()}catch(_){}; trackLfo(lfo); const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(g); g.connect(wet); wet.connect(mix); node=mix; });
+  take('deepphase', function(){ if(!(S.deepphase&&S.deepphase.on)) return; const mixA=S.deepphase.mix||0.32; const dry=ctx.createGain(); dry.gain.value=1-mixA; const wet=ctx.createGain(); wet.gain.value=mixA; let p=node; for(let i=0;i<6;i++){ const f=ctx.createBiquadFilter(); f.type='allpass'; f.frequency.value=300+i*220; p.connect(f); p=f; } const lfo=ctx.createOscillator(); lfo.frequency.value=S.deepphase.rate||0.18; try{lfo.start()}catch(_){}; trackLfo(lfo); const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); p.connect(wet); wet.connect(mix); node=mix; });
+  take('longecho', function(){ if(!(S.longecho&&S.longecho.on)) return; const mixA=S.longecho.mix||0.22; const dry=ctx.createGain(); dry.gain.value=1-mixA; const wet=ctx.createGain(); wet.gain.value=mixA; const d=ctx.createDelay(2); d.delayTime.value=_noteSec(S.longecho.note||'1/4'); const fb=ctx.createGain(); fb.gain.value=Math.min(0.9,S.longecho.feedback||0.42); const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('freeze', function(){ if(!(S.freeze&&S.freeze.on)) return; const mixA=S.freeze.mix||0.3; const dry=ctx.createGain(); dry.gain.value=1-mixA*0.5; const wet=ctx.createGain(); wet.gain.value=mixA; const d=ctx.createDelay(1); d.delayTime.value=0.18; const fb=ctx.createGain(); fb.gain.value=Math.min(0.95,S.freeze.feedback||0.78); const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('vinyl', function(){ if(!(S.vinyl&&S.vinyl.on)) return; const a=S.vinyl.amount||0.3; const sh=_sat(ctx,a*0.6); const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=S.vinyl.tone||5500; const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=40+a*60; node.connect(hp); hp.connect(sh); sh.connect(lp); node=lp; });
+  take('radio', function(){ if(!(S.radio&&S.radio.on)) return; const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=S.radio.hz||1100; bp.Q.value=S.radio.q||1.4; node.connect(bp); node=bp; });
+  take('under', function(){ if(!(S.under&&S.under.on)) return; const mixA=S.under.mix||0.35; const dry=ctx.createGain(); dry.gain.value=1-mixA*0.5; const wet=ctx.createGain(); wet.gain.value=mixA; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=S.under.hz||1100; const d=ctx.createDelay(0.05); d.delayTime.value=0.018; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(lp); lp.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('glass', function(){ if(!(S.glass&&S.glass.on)) return; const mixA=S.glass.mix||0.24; const dry=ctx.createGain(); dry.gain.value=1-mixA; const wet=ctx.createGain(); wet.gain.value=mixA; const d=ctx.createDelay(0.08); d.delayTime.value=0.03; const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=S.glass.tone||8000; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(hp); hp.connect(wet); wet.connect(mix); node=mix; });
+  take('pulseamp', function(){ if(!(S.pulseamp&&S.pulseamp.on)) return; const g=ctx.createGain(); g.gain.value=1; const lfo=ctx.createOscillator(); lfo.frequency.value=1/Math.max(0.05,_noteSec(S.pulseamp.note||'1/8')); const lg=ctx.createGain(); lg.gain.value=(S.pulseamp.depth||0.4)*0.5; lfo.connect(lg); lg.connect(g.gain); try{lfo.start()}catch(_){}; trackLfo(lfo); node.connect(g); node=g; });
+  take('swirlpan', function(){ if(!(S.swirlpan&&S.swirlpan.on)) return; const p=ctx.createStereoPanner(); p.pan.value=0; const lfo=ctx.createOscillator(); lfo.frequency.value=1/Math.max(0.05,_noteSec(S.swirlpan.note||'1/4')); const lg=ctx.createGain(); lg.gain.value=S.swirlpan.depth||0.55; lfo.connect(lg); lg.connect(p.pan); try{lfo.start()}catch(_){}; trackLfo(lfo); node.connect(p); node=p; });
+  take('cream', function(){ if(!(S.cream&&S.cream.on)) return; const a=S.cream.amount||0.28; const sh=_sat(ctx,a*0.7); const ls=ctx.createBiquadFilter(); ls.type='lowshelf'; ls.frequency.value=180; ls.gain.value=S.cream.warm||2.5; node.connect(ls); ls.connect(sh); node=sh; });
+  take('fogbank', function(){ if(!(S.fogbank&&S.fogbank.on)) return; const mixA=S.fogbank.mix||0.4; const dry=ctx.createGain(); dry.gain.value=1-mixA*0.6; const wet=ctx.createGain(); wet.gain.value=mixA; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=S.fogbank.hz||2200; const d=ctx.createDelay(0.2); d.delayTime.value=0.08; const fb=ctx.createGain(); fb.gain.value=0.35; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(lp); lp.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+
+  /* master polish set */
+  take('glue2', function(){ if(!(S.glue2&&S.glue2.on)) return; const c=ctx.createDynamicsCompressor(); c.threshold.value=-24; c.knee.value=12; c.ratio.value=3+(S.glue2.amount||0.3)*4; c.attack.value=0.01; c.release.value=0.2; node.connect(c); node=c; });
+  take('ceiling', function(){ if(!(S.ceiling&&S.ceiling.on)) return; const c=ctx.createDynamicsCompressor(); c.threshold.value=-6*(S.ceiling.thresh||0.7); c.knee.value=2; c.ratio.value=12; c.attack.value=0.003; c.release.value=0.08; node.connect(c); node=c; });
+  take('busdrive', function(){ if(!(S.busdrive&&S.busdrive.on)) return; const a=S.busdrive.amount||0.22; const sh=_sat(ctx,a); const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=S.busdrive.tone||5000; node.connect(sh); sh.connect(lp); node=lp; });
+  take('airmax', function(){ if(!(S.airmax&&S.airmax.on)) return; const f=ctx.createBiquadFilter(); f.type='highshelf'; f.frequency.value=9000; f.gain.value=S.airmax.gain||2.5; node.connect(f); node=f; });
+  take('lowend', function(){ if(!(S.lowend&&S.lowend.on)) return; const f=ctx.createBiquadFilter(); f.type='lowshelf'; f.frequency.value=S.lowend.hz||80; f.gain.value=S.lowend.gain||2; node.connect(f); node=f; });
+  take('midcarve', function(){ if(!(S.midcarve&&S.midcarve.on)) return; const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=S.midcarve.hz||900; f.Q.value=0.9; f.gain.value=S.midcarve.gain||-2; node.connect(f); node=f; });
+  take('widen2', function(){ if(!(S.widen2&&S.widen2.on)) return; const mixA=S.widen2.mix||0.32; const dry=ctx.createGain(); dry.gain.value=1-mixA*0.4; const wet=ctx.createGain(); wet.gain.value=mixA; const d=ctx.createDelay(0.05); d.delayTime.value=0.018; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('mono80', function(){ if(!(S.mono80&&S.mono80.on)) return; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=S.mono80.hz||80; const g=ctx.createGain(); g.gain.value=0.9; node.connect(lp); lp.connect(g); node=g; });
+  take('polishlp', function(){ if(!(S.polishlp&&S.polishlp.on)) return; const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=S.polishlp.hz||14000; f.Q.value=0.5; node.connect(f); node=f; });
+  take('polishhp', function(){ if(!(S.polishhp&&S.polishhp.on)) return; const f=ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=S.polishhp.hz||35; f.Q.value=0.5; node.connect(f); node=f; });
+  take('sparkle', function(){ if(!(S.sparkle&&S.sparkle.on)) return; const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=S.sparkle.hz||7000; f.Q.value=0.8; f.gain.value=S.sparkle.gain||2.2; node.connect(f); node=f; });
+  take('velvet', function(){ if(!(S.velvet&&S.velvet.on)) return; const a=S.velvet.amount||0.2; const sh=_sat(ctx,a*0.5); const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=9000-a*2000; node.connect(sh); sh.connect(lp); node=lp; });
+  take('punch', function(){ if(!(S.punch&&S.punch.on)) return; const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=S.punch.hz||140; f.Q.value=1.1; f.gain.value=S.punch.gain||2.4; node.connect(f); node=f; });
+  take('silk', function(){ if(!(S.silk&&S.silk.on)) return; const f=ctx.createBiquadFilter(); f.type='peaking'; f.frequency.value=S.silk.hz||4200; f.Q.value=1.2; f.gain.value=S.silk.gain||-2.5; node.connect(f); node=f; });
+  take('mass', function(){ if(!(S.mass&&S.mass.on)) return; const a=S.mass.amount||0.28; const ls=ctx.createBiquadFilter(); ls.type='lowshelf'; ls.frequency.value=120; ls.gain.value=1+a*4; const c=ctx.createDynamicsCompressor(); c.threshold.value=-18; c.ratio.value=2.5; c.attack.value=0.02; c.release.value=0.25; node.connect(ls); ls.connect(c); node=c; });
+  take('polishverb', function(){ if(!(S.polishverb&&S.polishverb.on)) return; const mixA=S.polishverb.mix||0.14; const dry=ctx.createGain(); dry.gain.value=1; const wet=ctx.createGain(); wet.gain.value=mixA; const d=ctx.createDelay(0.5); d.delayTime.value=0.08; const fb=ctx.createGain(); fb.gain.value=0.3; const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=5000; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(fb); fb.connect(lp); lp.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('image', function(){ if(!(S.image&&S.image.on)) return; const w=S.image.width||0.4; const dry=ctx.createGain(); dry.gain.value=1-w*0.35; const wet=ctx.createGain(); wet.gain.value=w; const d=ctx.createDelay(0.04); d.delayTime.value=0.012; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('finalloud', function(){ if(!(S.finalloud&&S.finalloud.on)) return; const g=ctx.createGain(); g.gain.value=S.finalloud.gain||1.05; node.connect(g); node=g; });
+  take('curve', function(){ if(!(S.curve&&S.curve.on)) return; const t=S.curve.tilt||1.5; const lo=ctx.createBiquadFilter(); lo.type='lowshelf'; lo.frequency.value=250; lo.gain.value=t; const hi=ctx.createBiquadFilter(); hi.type='highshelf'; hi.frequency.value=4000; hi.gain.value=-t*0.6; node.connect(lo); lo.connect(hi); node=hi; });
+  take('clean', function(){ if(!(S.clean&&S.clean.on)) return; const a=S.clean.amount||0.25; const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=30+a*40; const g=ctx.createGain(); g.gain.value=1-a*0.05; node.connect(hp); hp.connect(g); node=g; });
+  take('stage', function(){ if(!(S.stage&&S.stage.on)) return; const mixA=S.stage.mix||0.12; const dry=ctx.createGain(); dry.gain.value=1; const wet=ctx.createGain(); wet.gain.value=mixA; const d=ctx.createDelay(0.3); d.delayTime.value=0.045; const fb=ctx.createGain(); fb.gain.value=0.22; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(mix); node=mix; });
+  take('wire', function(){ if(!(S.wire&&S.wire.on)) return; const f=ctx.createBiquadFilter(); f.type='highshelf'; f.frequency.value=S.wire.hz||9000; f.gain.value=S.wire.gain||1.8; node.connect(f); node=f; });
+  take('glue3', function(){ if(!(S.glue3&&S.glue3.on)) return; const mixA=S.glue3.mix||0.35; const dry=ctx.createGain(); dry.gain.value=1-mixA*0.4; const wet=ctx.createGain(); wet.gain.value=mixA; const c=ctx.createDynamicsCompressor(); c.threshold.value=-20; c.ratio.value=4; c.attack.value=0.015; c.release.value=0.2; const mix=ctx.createGain(); node.connect(dry); dry.connect(mix); node.connect(c); c.connect(wet); wet.connect(mix); node=mix; });
+  take('shelfmaster', function(){ if(!(S.shelfmaster&&S.shelfmaster.on)) return; const lo=ctx.createBiquadFilter(); lo.type='lowshelf'; lo.frequency.value=120; lo.gain.value=S.shelfmaster.low||1.5; const hi=ctx.createBiquadFilter(); hi.type='highshelf'; hi.frequency.value=8000; hi.gain.value=S.shelfmaster.high||1.2; node.connect(lo); lo.connect(hi); node=hi; });
+  take('finaltrim', function(){ if(!(S.finaltrim&&S.finaltrim.on)) return; const g=ctx.createGain(); g.gain.value=S.finaltrim.gain||1; node.connect(g); node=g; });
+
+  function orderedIds(){
+    const on = [];
+    const seen = {};
+    (fxChain || []).forEach(function(id){
+      if (!id || seen[id]) return;
+      if (fxState[id] && fxState[id].on) { seen[id]=1; on.push(id); }
+    });
+    FX_DEFS.forEach(function(d){
+      if (seen[d.id]) return;
+      if (fxState[d.id] && fxState[d.id].on) { seen[d.id]=1; on.push(d.id); }
+    });
+    return on;
+  }
+
+  FX_DEFS.forEach(function(def){
+    if (applyers[def.id]) return;
+    take(def.id, function(){
+      if (!S[def.id] || !S[def.id].on) return;
+      const st = S[def.id];
+      const amt = st.amount != null ? st.amount : (st.mix != null ? st.mix : (st.depth != null ? st.depth : (st.gain != null ? Math.min(1, st.gain/8) : 0.35)));
+      const kind = def.kind || 'drive';
+      if (kind === 'filter' || kind === 'shelf'){
+        const f = ctx.createBiquadFilter();
+        f.type = kind === 'shelf' ? 'highshelf' : 'peaking';
+        f.frequency.value = st.hz || st.tone || 1200;
+        f.gain.value = st.gain != null ? st.gain : (amt*6);
+        f.Q.value = 0.8;
+        reg(def.id, 'hz', f.frequency, 'value');
+        reg(def.id, 'gain', f.gain, 'value');
+        node.connect(f); node=f;
+        return;
+      }
+      if (kind === 'delay' || kind === 'verb'){
+        const dry = ctx.createGain(); dry.gain.value = 1 - Math.min(0.8, amt);
+        const wet = ctx.createGain(); wet.gain.value = Math.min(0.8, amt);
+        const d = ctx.createDelay(1.5); d.delayTime.value = kind === 'verb' ? 0.046 : (0.08 + amt*0.22);
+        const fb = ctx.createGain(); fb.gain.value = Math.min(0.72, st.feedback != null ? st.feedback : amt*0.55);
+        const mix = ctx.createGain();
+        node.connect(dry); dry.connect(mix);
+        node.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(mix);
+        reg(def.id, 'mix', wet.gain, 'value');
+        node = mix;
+        return;
+      }
+      if (kind === 'mod' || kind === 'width' || kind === 'gate'){
+        const g = ctx.createGain(); g.gain.value = 1;
+        const lfo = ctx.createOscillator(); lfo.frequency.value = st.rate || 0.8;
+        const lg = ctx.createGain(); lg.gain.value = kind === 'gate' ? (0.2+amt*0.6) : (kind === 'width' ? 0 : 0.15*amt);
+        if (kind !== 'width'){ lfo.connect(lg); lg.connect(g.gain); trackLfo(lfo); try{lfo.start();}catch(_){} }
+        const pan = ctx.createStereoPanner(); pan.pan.value = kind === 'width' ? (amt*0.8) : 0;
+        if (kind === 'width'){
+          const lfo2 = ctx.createOscillator(); lfo2.frequency.value = st.rate || 0.35;
+          const pg = ctx.createGain(); pg.gain.value = amt*0.7;
+          lfo2.connect(pg); pg.connect(pan.pan); trackLfo(lfo2); try{lfo2.start();}catch(_){}
+        }
+        reg(def.id, 'rate', lfo.frequency, 'value');
+        node.connect(g); g.connect(pan); node=pan;
+        return;
+      }
+      if (kind === 'gain'){
+        const g = ctx.createGain(); g.gain.value = st.gain != null ? st.gain : 1;
+        reg(def.id, 'gain', g.gain, 'value');
+        node.connect(g); node=g;
+        return;
+      }
+      const sh = ctx.createWaveShaper();
+      sh.curve = makeDistortionCurve(Math.max(0.05, amt));
+      const ton = ctx.createBiquadFilter(); ton.type='lowpass'; ton.frequency.value = st.tone || 6500;
+      reg(def.id, 'tone', ton.frequency, 'value');
+      liveRack.nodes[def.id] = liveRack.nodes[def.id] || {};
+      liveRack.nodes[def.id]._shaper = sh;
+      liveRack.nodes[def.id]._curveFn = function(v){ sh.curve = makeDistortionCurve(v||0.2); };
+      node.connect(sh); sh.connect(ton); node=ton;
+    });
+  });
+  orderedIds().forEach(function(id){ if (applyers[id]) applyers[id](); });
+
+  node.connect(dest);
+  return input;
+}
+
+/** Push current fxState into live AudioParams (no graph rebuild). */
+function applyLiveRack(){
+  if (!playing || !liveRack || !liveRack.nodes) return;
+  const S = fxState;
+  const t = (liveRack.ctx && liveRack.ctx.currentTime) || 0;
+  function setP(entry, val){
+    if (!entry || !entry.param) return;
+    try { entry.param.setTargetAtTime(val, t, 0.03); } catch(_){
+      try { entry.param.value = val; } catch(__){}
+    }
+  }
+  Object.keys(liveRack.nodes).forEach(function(id){
+    const st = S[id];
+    if (!st) return;
+    const bag = liveRack.nodes[id];
+    Object.keys(bag).forEach(function(key){
+      if (key.charAt(0) === '_') return;
+      const entry = bag[key];
+      const kind = entry.kind || 'value';
+      let v = st[key];
+      if (v == null) return;
+      if (kind === 'ms') v = (v || 1) / 1000;
+      else if (kind === 'wetdry') {
+        setP(entry, v);
+        if (bag._dry) { try { bag._dry.setTargetAtTime(1 - v * (id==='reverb'?0.85: id==='infection'||id==='crawl'?0.35:0.5), t, 0.03); } catch(_){} }
+        return;
+      } else if (kind === 'crushLp') {
+        v = 16000 - v * 11000;
+        // update bitcrush curve
+        if (bag._shaper) {
+          const amt = st.amount || 0.28;
+          const bits = Math.max(4, Math.round(12 - amt * 8));
+          const levels = Math.pow(2, bits);
+          const c = new Float32Array(256);
+          for (let i = 0; i < 256; i++) { const x = i / 255 * 2 - 1; c[i] = Math.round(x * (levels / 2)) / (levels / 2); }
+          bag._shaper.curve = c;
+        }
+      } else if (kind === 'tapeDull') {
+        v = 14000 - v * 8000;
+        if (bag._lfo) try { bag._lfo.setTargetAtTime(0.35 + (st.wow||0)*0.8, t, 0.05); } catch(_){}
+        if (bag._lg) try { bag._lg.setTargetAtTime(0.001 + (st.wow||0)*0.004, t, 0.05); } catch(_){}
+      } else if (kind === 'tremDepth') {
+        setP(entry, v * 0.5);
+        if (bag._base) try { bag._base.setTargetAtTime(1 - v * 0.5, t, 0.03); } catch(_){}
+        return;
+      } else if (kind === 'width') {
+        const w = 0.5 + v * 0.5;
+        setP(entry, w);
+        if (bag._r) try { bag._r.setTargetAtTime(w, t, 0.03); } catch(_){}
+        return;
+      } else if (kind === 'grain') {
+        setP(entry, v * 0.5);
+        if (bag._dry) try { bag._dry.setTargetAtTime(1 - v * 0.5, t, 0.03); } catch(_){}
+        if (bag._lfo) try { bag._lfo.setTargetAtTime(8 + v * 14, t, 0.05); } catch(_){}
+        if (bag._lg) try { bag._lg.setTargetAtTime(0.01 * v, t, 0.05); } catch(_){}
+        return;
+      } else if (kind === 'meltHp') {
+        v = 40 + v * 400;
+      } else if (kind === 'wormDepth') {
+        v = 0.002 + v * 0.01;
+      }
+      setP(entry, v);
+    });
+    // drive / rot / grit curve live update
+    if (id === 'drive' && bag._curveFn && st.amount != null) bag._curveFn(st.amount);
+    if (id === 'rot' && bag._shaper && st.amount != null) {
+      const amt = st.amount; const curve = new Float32Array(256);
+      for (let i = 0; i < 256; i++) { const x = i / 128 - 1; curve[i] = Math.tanh(x * (1.2 + amt * 2.8)) * (0.9 + amt * 0.1); }
+      bag._shaper.curve = curve;
+    }
+    if (id === 'grit' && bag._shaper && st.amount != null) bag._shaper.curve = makeDistortionCurve(st.amount);
+    if (id === 'fadeout' && bag._shape) bag._shape();
+  });
+}
+
+/** Rebuild graph when FX is toggled on/off or note division changes (structure change). */
+function liveRebuildIfPlaying(){
+  if (playing) {
+    playLive();
+  }
+}
+
+function applyModes(ctx, dest){
+  let nodeDest = dest;
+  if (suicideOn){
+    const input=ctx.createGain();
+    const rumble=ctx.createBiquadFilter(); rumble.type='highpass'; rumble.frequency.value=38;
+    const body=ctx.createBiquadFilter(); body.type='peaking'; body.frequency.value=90; body.gain.value=2.4; body.Q.value=1.1;
+    const box=ctx.createBiquadFilter(); box.type='peaking'; box.frequency.value=320; box.gain.value=-2; box.Q.value=0.9;
+    const sat=ctx.createWaveShaper(); sat.curve=makeDistortionCurve(0.28);
+    const tone=ctx.createBiquadFilter(); tone.type='lowpass'; tone.frequency.value=6200;
+    const smear=ctx.createDelay(0.03); smear.delayTime.value=0.009;
+    input.connect(rumble); rumble.connect(body); body.connect(box); box.connect(sat); sat.connect(tone); tone.connect(smear); smear.connect(nodeDest);
+    nodeDest = input;
+  }
+  if (nightOn){
+    const input=ctx.createGain();
+    const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=62;
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=8200;
+    const d=ctx.createDelay(0.06); d.delayTime.value=0.01;
+    const lfo=ctx.createOscillator(); lfo.frequency.value=0.17;
+    const lg=ctx.createGain(); lg.gain.value=0.004;
+    lfo.connect(lg); lg.connect(d.delayTime); try{lfo.start()}catch(_){}
+    input.connect(hp); hp.connect(d); d.connect(lp); lp.connect(nodeDest);
+    nodeDest = input;
+  }
+  if (sleepOn){
+    const input=ctx.createGain();
+    const hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=260;
+    const mid=ctx.createBiquadFilter(); mid.type='peaking'; mid.frequency.value=1350; mid.gain.value=5; mid.Q.value=0.85;
+    const lp=ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=3200;
+    const g=ctx.createGain(); g.gain.value=0.55;
+    input.connect(hp); hp.connect(mid); mid.connect(lp); lp.connect(g); g.connect(nodeDest);
+    nodeDest = input;
+  }
+  return nodeDest;
+}
+
+function stopAll(){
+  sources.forEach(s => { try{s.stop()}catch(_){ } });
+  sources = [];
+  liveRack = null;
+  playing = false;
+  document.body.classList.remove('is-running');
+  document.getElementById('playBtn').classList.remove('playing');
+  document.getElementById('playBtn').textContent = '▶ PLAY';
+}
+
+/** Stretch factor: master project BPM / this sample's native BPM */
+function bayAlignRate(s){
+  const native = (s && s.bpm > 0) ? s.bpm : bpm;
+  const master = Math.max(40, Math.min(240, bpm || 120));
+  return Math.max(0.25, Math.min(4, master / native));
+}
+
+function longestLoaded(){
+  let m=0;
+  slots.forEach(s => {
+    if (!s.buffer) return;
+    // wall-clock duration after BPM align
+    m = Math.max(m, s.buffer.duration / bayAlignRate(s));
+  });
+  return m;
+}
+
+function playLive(){
+  const ctx=ensureCtx();
+  stopPreview();
+  stopAll();
+  const loaded = slots.filter(s => s.buffer);
+  if (!loaded.length){ setStatus('No bodies in the bays.'); return; }
+  const dest = applyRack(ctx, applyModes(ctx, ctx.destination));
+  loaded.forEach(s => {
+    const src=ctx.createBufferSource();
+    src.buffer=s.buffer;
+    src.playbackRate.value = bayAlignRate(s);
+    src.loop = looping;
+    src.connect(dest);
+    src.start();
+    sources.push(src);
+  });
+  playing = true;
+  document.body.classList.add('is-running');
+  document.getElementById('playBtn').classList.add('playing');
+  document.getElementById('playBtn').textContent = '■ STOP';
+  setStatus('Ruining ' + loaded.length + ' tape' + (loaded.length>1?'s':'') + ' @ ' + bpm + ' BPM' + (looping?' · loop':''));
+}
+
+
+    function dreamNormalizeBuffer(ab, targetPeak) {
+      if (!ab || typeof ab.getChannelData !== 'function') return ab;
+      if (typeof window.dreamNormalizeBuffer === 'function' && window.dreamNormalizeBuffer !== dreamNormalizeBuffer) {
+        return window.dreamNormalizeBuffer(ab, targetPeak);
+      }
+      const target = (typeof targetPeak === 'number' && targetPeak > 0) ? targetPeak : 0.85;
+      let peak = 0;
+      const chs = ab.numberOfChannels | 0;
+      const n = ab.length | 0;
+      for (let c = 0; c < chs; c++) {
+        const d = ab.getChannelData(c);
+        for (let i = 0; i < n; i++) {
+          const a = d[i] < 0 ? -d[i] : d[i];
+          if (a > peak) peak = a;
+        }
+      }
+      if (!(peak > 1e-8)) return ab;
+      const g = target / peak;
+      for (let c = 0; c < chs; c++) {
+        const d = ab.getChannelData(c);
+        for (let i = 0; i < n; i++) d[i] *= g;
+      }
+      return ab;
+    }
+
+function encodeWav(buffer){
+      try { buffer = dreamNormalizeBuffer(buffer, 0.72) || buffer; } catch (_n) {}
+
+  const ch=buffer.numberOfChannels, sr=buffer.sampleRate, n=buffer.length;
+  const ab=new ArrayBuffer(44+n*ch*2), v=new DataView(ab);
+  const wstr=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+  wstr(0,'RIFF'); v.setUint32(4,36+n*ch*2,true); wstr(8,'WAVE'); wstr(12,'fmt ');
+  v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,ch,true);
+  v.setUint32(24,sr,true); v.setUint32(28,sr*ch*2,true); v.setUint16(32,ch*2,true); v.setUint16(34,16,true);
+  wstr(36,'data'); v.setUint32(40,n*ch*2,true);
+  let o=44;
+  for(let i=0;i<n;i++){
+    for(let c=0;c<ch;c++){
+      let s=buffer.getChannelData(c)[i];
+      s=Math.max(-1,Math.min(1,s));
+      v.setInt16(o, s<0?s*0x8000:s*0x7fff, true); o+=2;
+    }
+  }
+  return ab;
+}
+
+async function exportWav(){
+  const loaded = slots.filter(s => s.buffer);
+  if (!loaded.length){ setStatus('Nothing to export.'); return; }
+  const ctx=ensureCtx();
+  // Match live path: same bay rates, same rack, same modes.
+  // Duration must cover full stretched bodies + fadeout envelope + reverb tail.
+  const bodyDur = longestLoaded();
+  const fadeExtra = (fxState.fadeout && fxState.fadeout.on)
+    ? ((fxState.fadeout.attack||0) + (fxState.fadeout.body||0) + (fxState.fadeout.release||0) + 0.08)
+    : 0;
+  const revTail = (fxState.reverb && fxState.reverb.on)
+    ? Math.max(0.35, (fxState.reverb.decay || 1.2) * 0.85)
+    : 0.15;
+  // Prefer the longer of body vs fade envelope so short samples with long fadeout still export full shape
+  const dur = Math.max(0.5, Math.max(bodyDur, fadeExtra) + revTail);
+  const off = new OfflineAudioContext(2, Math.ceil(dur * ctx.sampleRate), ctx.sampleRate);
+  // Same chain order as playLive: applyRack then applyModes onto destination
+  const dest = applyRack(off, applyModes(off, off.destination));
+  loaded.forEach(s => {
+    const src = off.createBufferSource();
+    src.buffer = s.buffer;
+    src.playbackRate.value = bayAlignRate(s);
+    // no loop on export — one-shot of the arrangement length
+    src.connect(dest);
+    src.start(0);
+  });
+  setStatus('Rendering…');
+  try {
+    const rendered = await off.startRendering();
+    const blob = new Blob([encodeWav((dreamNormalizeBuffer(rendered, 0.72) || rendered))], { type: 'audio/wav' });
+    const name=dreamTapeName()+'.wav';
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download=name;
+    if (!window._DREAM_SAVE_ONLY) dreamForceDownload(blob, name); const saved=await dreamSaveBlob(blob, name);
+    if (!saved) a.click();
+    const localUrl=URL.createObjectURL(blob);
+    catalog = (catalog||[]).filter(it => !(it.folder==='INSOMNIA' && it.fileName===name));
+    catalog.push({ folder:'INSOMNIA', fileName:name, id:name.replace(/\.wav$/i,''), url:localUrl });
+    renderBrowser();
+    setStatus(saved ? ('Saved to INSOMNIA/ · ' + name) : ('Local tape · ' + name));
+  } catch(err){
+    setStatus('Export failed: ' + (err.message||err));
+  }
+}
+
+async function decodeFile(file){
+  const ctx=ensureCtx();
+  const buf=await file.arrayBuffer();
+  return await ctx.decodeAudioData(buf.slice(0));
+}
+async function loadInto(i, file, url, name){
+  try {
+    const ctx=ensureCtx();
+    let buffer;
+    if (file) buffer = await decodeFile(file);
+    else if (url) {
+      const r=await fetch(url); if(!r.ok) throw new Error('fetch');
+      buffer=await ctx.decodeAudioData((await r.arrayBuffer()).slice(0));
+    } else return;
+    while (slots.length <= i) slots.push({ name:'', buffer:null, file:null, bpm: bpm });
+    const prevBpm = (slots[i] && slots[i].bpm > 0) ? slots[i].bpm : bpm;
+    slots[i] = { name: name || (file && file.name) || 'tape', buffer, file:file||null, bpm: prevBpm };
+    activeSlot=i;
+    renderSlots();
+    setStatus('Bay ' + (i+1) + ' · ' + slots[i].name + ' · sample BPM ' + slots[i].bpm + ' → master ' + bpm);
+    if (file){
+      const url=URL.createObjectURL(file);
+      catalog.push({ folder:'SESSION / DROPS', fileName:file.name, id:file.name, url, dropped:true, session:true });
+      renderBrowser();
+    }
+  } catch(err){
+    setStatus('Could not eat that tape.');
+  }
+}
+function clearSlot(i){
+  slots.splice(i,1);
+  if (activeSlot>=slots.length) activeSlot=slots.length-1;
+  renderSlots();
+  setStatus('Bay deleted.');
+}
+function addBay(){
+  if (slots.length>=MAX_SLOTS){ setStatus('Max '+MAX_SLOTS+' bays'); return slots.length-1; }
+  slots.push({ name:'', buffer:null, file:null, bpm: bpm });
+  activeSlot=slots.length-1;
+  renderSlots();
+  return activeSlot;
+}
+
+function renderSlots(){
+  const el=document.getElementById('slots');
+  el.innerHTML='';
+  if (!slots.length){
+    const empty=document.createElement('div');
+    empty.className='slot';
+    empty.innerHTML='<div class="nm">No bays yet</div><div class="row">Double-click a tape, Load, or hit +</div>';
+    el.appendChild(empty);
+  }
+  slots.forEach((s,i) => {
+    if (!(s.bpm > 0)) s.bpm = bpm;
+    const d=document.createElement('div');
+    d.className='slot' + (s.buffer?' full':'') + (i===activeSlot?' active':'');
+    d.innerHTML = '<div class="nm">' + (s.name || ('bay '+(i+1)+' empty')) + '</div>' +
+      '<div class="row"><button type="button" data-a="load">Load</button><button type="button" data-a="kill">✕</button></div>' +
+      '<label class="bay-bpm" title="Native BPM of this sample — stretched to master BPM on play">BPM <input type="number" data-a="bpm" min="40" max="300" step="1" value="' + Math.round(s.bpm) + '"></label>';
+    d.addEventListener('click', ev => { if (ev.target.closest('button') || ev.target.closest('input')) return; activeSlot=i; renderSlots(); });
+    d.querySelector('[data-a=load]').onclick=(ev)=>{ ev.stopPropagation(); pickFile(i); };
+    d.querySelector('[data-a=kill]').onclick=()=>clearSlot(i);
+    const bpmInp = d.querySelector('[data-a=bpm]');
+    const commitBayBpm = () => {
+      let v = parseFloat(bpmInp.value);
+      if (!isFinite(v)) v = 120;
+      v = Math.max(40, Math.min(300, v));
+      slots[i].bpm = Math.round(v);
+      bpmInp.value = slots[i].bpm;
+      setStatus('Bay ' + (i+1) + ' sample BPM ' + slots[i].bpm + ' → master ' + bpm + ' (rate ' + bayAlignRate(slots[i]).toFixed(3) + ')');
+    };
+    bpmInp.addEventListener('change', commitBayBpm);
+    bpmInp.addEventListener('blur', commitBayBpm);
+    bpmInp.addEventListener('click', ev => ev.stopPropagation());
+    d.addEventListener('dragover', ev => { ev.preventDefault(); d.classList.add('drag'); });
+    d.addEventListener('dragleave', () => d.classList.remove('drag'));
+    d.addEventListener('drop', ev => {
+      ev.preventDefault(); d.classList.remove('drag');
+      const f=ev.dataTransfer.files && ev.dataTransfer.files[0];
+      if (f) loadInto(i, f, null, f.name);
+    });
+    el.appendChild(d);
+  });
+  const add=document.createElement('div');
+  add.className='slot add';
+  add.innerHTML='<button type="button">+</button>';
+  add.querySelector('button').onclick=()=>{ addBay(); setStatus('Empty bay ' + slots.length); };
+  el.appendChild(add);
+}
+
+function pickFile(i){
+  const inp=document.createElement('input');
+  inp.type='file';
+  inp.accept='audio/*,.wav,.mp3,.ogg,.flac,.aiff,.aif,.m4a';
+  inp.style.display='none';
+  inp.onchange=()=>{
+    const f=inp.files&&inp.files[0];
+    inp.remove();
+    if(f) loadInto(i, f, null, f.name);
+    else setStatus('No file chosen.');
+  };
+  document.body.appendChild(inp);
+  inp.click();
+  setStatus('Choose an audio file…');
+}
+
+let previewSrc=null, previewCache={};
+function encPath(u){
+  if (!u) return u;
+  const s=String(u);
+  if (/^(blob:|data:|https?:)/i.test(s)) return s;
+  return s.split('/').map(encodeURIComponent).join('/');
+}
+function stopPreview(){
+  if (previewSrc){ try{ previewSrc.stop(); }catch(_){ } previewSrc=null; }
+}
+async function previewTape(url, name){
+  if (!url){ setStatus('No URL for ' + name); return; }
+  const ctx=ensureCtx();
+  stopPreview();
+  try {
+    let buf=previewCache[url];
+    if (!buf){
+      const r=await fetch(encPath(url));
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      buf=await ctx.decodeAudioData((await r.arrayBuffer()).slice(0));
+      previewCache[url]=buf;
+    }
+    const src=ctx.createBufferSource();
+    src.buffer=buf;
+    src.connect(ctx.destination);
+    src.start();
+    previewSrc=src;
+    src.onended=()=>{ if(previewSrc===src) previewSrc=null; };
+    setStatus('Preview · ' + name + ' · double-click to open a new bay');
+  } catch(err){
+    setStatus('Preview failed · ' + name);
+  }
+}
+
+function renderBrowser(){
+  const el=document.getElementById('browserList');
+  if (!catalog.length){ el.textContent='No catalog yet — open from GOODNIGHT.'; return; }
+  const groups={};
+  catalog.forEach(it => {
+    const f=it.folder || 'Samples';
+    (groups[f]=groups[f]||[]).push(it);
+  });
+  el.innerHTML='';
+  Object.keys(groups).sort().forEach(f => {
+    const det=document.createElement('details');
+    det.className='folder'; det.open = false;
+    det.innerHTML='<summary>' + f + ' · ' + groups[f].length + '</summary>';
+    groups[f].forEach(it => {
+      const b=document.createElement('button');
+      b.className='samp';
+      b.textContent=it.fileName || it.id || 'tape';
+      b.title='Click to hear · double-click new bay';
+      b.onclick=()=>previewTape(it.url, it.fileName || it.id);
+      b.ondblclick=()=>{ const i=addBay(); loadInto(i, null, it.url, it.fileName || it.id); };
+      det.appendChild(b);
+    });
+    el.appendChild(det);
+  });
+}
+
+function renderFx(){
+  const grid=document.getElementById('fxGrid');
+  grid.innerHTML='';
+  const BETA_FX = { vortex:1, seance:1, ripple:1, halo:1, pulse:1, fog:1, needle:1, ink:1 };
+  let betaHead = false;
+  let polishHead = false;
+  let onHead = false;
+  // Cards stay put when toggled. Chain order is the badge / arrows, not a jump to the top.
+  const ordered = FX_DEFS.slice();
+  ordered.forEach(def => {
+    const isOn = fxState[def.id] && fxState[def.id].on;
+    if (def.group === 'polish' && !polishHead && !isOn) {
+      polishHead = true;
+      const banner = document.createElement('div');
+      banner.className = 'fx-family';
+      banner.textContent = 'MASTER POLISH';
+      grid.appendChild(banner);
+    }
+    if (BETA_FX[def.id] && !betaHead && !isOn) {
+      betaHead = true;
+      const banner = document.createElement('div');
+      banner.className = 'fx-family';
+      banner.textContent = 'FROM THE BETA MACHINES';
+      grid.appendChild(banner);
+    }
+    const st=fxState[def.id];
+    if (!st) return;
+    if (st.on && !onHead) {
+      onHead = true;
+      const banner = document.createElement('div');
+      banner.className = 'fx-family';
+      banner.textContent = 'ON';
+      grid.appendChild(banner);
+    }
+    const card=document.createElement('div');
+    card.className='fx' + (st.on?' on':'') + (fxLock[def.id]?' locked':'');
+    const ord = st.on ? ((fxChain||[]).indexOf(def.id)+1) : 0;
+    let html='<div class="hd">' +
+      '<span class="chain-ord'+(st.on?'':' off')+'" title="Chain slot">'+(ord||'–')+'</span>' +
+      '<b>' + def.name + '</b>' +
+      '<button class="chain-move" data-dir="-1" title="Earlier in chain">↑</button>' +
+      '<button class="chain-move" data-dir="1" title="Later in chain">↓</button>' +
+      '<button class="tog">' + (st.on?'ON':'OFF') + '</button>' +
+      '<button class="lock">' + (fxLock[def.id]?'LOCKED':'LOCK') + '</button></div>';
+    def.params.forEach(p => {
+      if (p.notes){
+        html += '<label>' + (p.key) + ' <select data-k="'+p.key+'">' +
+          p.notes.map(n => '<option'+(st[p.key]===n?' selected':'')+'>'+n+'</option>').join('') +
+          '</select></label>';
+      } else {
+        const val=st[p.key];
+        html += '<label>' + p.key + ' <input type="range" data-k="'+p.key+'" min="'+p.min+'" max="'+p.max+'" step="'+((p.max-p.min)/200)+'" value="'+val+'"> <i>' +
+          (typeof val==='number' ? (val>20?Math.round(val):val.toFixed(2)) : val) + '</i></label>';
+      }
+    });
+    card.innerHTML=html;
+    // Toggle = structure change → rebuild graph while playing so FX engages live
+    card.querySelector('.tog').onclick=()=>{
+      st.on=!st.on;
+      if (st.on) chainAdd(def.id);
+      else chainRemove(def.id);
+      renderFx();
+      liveRebuildIfPlaying();
+    };
+    card.querySelector('.lock').onclick=()=>{ fxLock[def.id]=!fxLock[def.id]; renderFx(); };
+    card.querySelectorAll('.chain-move').forEach(btn => {
+      btn.onclick=()=>{
+        if (!st.on) { st.on=true; chainAdd(def.id); }
+        chainMove(def.id, parseInt(btn.getAttribute('data-dir'),10));
+        renderFx();
+        liveRebuildIfPlaying();
+      };
+    });
+    card.querySelectorAll('input[type=range]').forEach(inp => {
+      inp.oninput=()=>{
+        st[inp.dataset.k]=parseFloat(inp.value);
+        const iel=inp.parentElement.querySelector('i');
+        if (iel) iel.textContent = parseFloat(inp.value)>20?Math.round(inp.value):parseFloat(inp.value).toFixed(2);
+        // Live: push into active rack AudioParams
+        if (playing) {
+          if (liveRack && liveRack.nodes && liveRack.nodes[def.id]) applyLiveRack();
+          else liveRebuildIfPlaying(); // FX was off when play started
+        }
+      };
+    });
+    card.querySelectorAll('select').forEach(sel => {
+      sel.onchange=()=>{ st[sel.dataset.k]=sel.value; liveRebuildIfPlaying(); };
+    });
+    grid.appendChild(card);
+  });
+}
+
+function rand(a,b){ return a+Math.random()*(b-a); }
+function randomizePicks(){
+  FX_DEFS.forEach(d => {
+    if (fxLock[d.id]) return;
+    // Never auto-pick master / polish bus FX
+    if (d.group === 'polish' || d.group === 'master') {
+      return;
+    }
+    const next = Math.random() < 0.32;
+    fxState[d.id].on = next;
+    if (next) chainAdd(d.id);
+    else chainRemove(d.id);
+  });
+  renderFx();
+  liveRebuildIfPlaying();
+  setStatus('Picks rerolled — master polish skipped · locked racks stayed.');
+}
+function randomizeValues(){
+  FX_DEFS.forEach(d => {
+    if (fxLock[d.id]) return;
+    d.params.forEach(p => {
+      if (p.notes) fxState[d.id][p.key]=p.notes[Math.floor(Math.random()*p.notes.length)];
+      else fxState[d.id][p.key]=rand(p.min, p.max);
+    });
+  });
+  renderFx();
+  liveRebuildIfPlaying();
+  setStatus('Values rerolled — locked racks stayed.');
+}
+function allOff(){
+  FX_DEFS.forEach(d => { if (!fxLock[d.id]) fxState[d.id].on=false; });
+  fxChain = (fxChain||[]).filter(id => fxState[id] && fxState[id].on);
+  renderFx();
+  liveRebuildIfPlaying();
+}
+
+document.getElementById('playBtn').onclick=()=>{ if(playing) stopAll(); else playLive(); };
+document.getElementById('stopBtn').onclick=stopAll;
+document.getElementById('loopBtn').onclick=function(){ looping=!looping; this.classList.toggle('on', looping); };
+document.getElementById('bpm').oninput=e=>{ bpm=Math.max(40, Math.min(240, Number(e.target.value)||120)); };
+document.getElementById('nightBtn').onclick=function(){ nightOn=!nightOn; this.classList.toggle('on', nightOn); liveRebuildIfPlaying(); };
+document.getElementById('sleepBtn').onclick=function(){ sleepOn=!sleepOn; this.classList.toggle('on', sleepOn); liveRebuildIfPlaying(); };
+document.getElementById('suicideBtn').onclick=function(){ suicideOn=!suicideOn; this.classList.toggle('on', suicideOn); setStatus(suicideOn?'SUICIDE armed — smear, dull, unique color.':'Suicide off.'); liveRebuildIfPlaying(); pushInsomniaMaster(); };
+let masterBusOn = false;
+function pushInsomniaMaster(){
+  try {
+    if (!(window.parent && window.parent !== window)) return;
+    var snap = {};
+    Object.keys(fxState || {}).forEach(function(k){
+      snap[k] = Object.assign({}, fxState[k]);
+    });
+    window.parent.postMessage({
+      type: 'INSOMNIA_MASTER',
+      pack: {
+        on: !!masterBusOn,
+        fxState: snap,
+        fxChain: (fxChain || []).slice(),
+        night: !!nightOn,
+        sleep: !!sleepOn,
+        suicide: !!suicideOn,
+        bpm: bpm || 120
+      }
+    }, '*');
+  } catch (_) {}
+}
+(function(){
+  var b = document.getElementById('masterBusBtn');
+  if (!b) return;
+  var inBuilder = false;
+  try { inBuilder = !!(window.parent && window.parent !== window); } catch (_) {}
+  b.style.display = inBuilder ? '' : 'none';
+  b.onclick = function(){
+    masterBusOn = !masterBusOn;
+    b.classList.toggle('on', masterBusOn);
+    pushInsomniaMaster();
+    setStatus(masterBusOn
+      ? 'MASTER on — this rack is the DreamBuilder mix. The sample in here is unchanged.'
+      : 'MASTER off — rack only hits the sample inside Insomnia');
+  };
+  setInterval(function(){ if (masterBusOn) pushInsomniaMaster(); }, 800);
+})();
+document.getElementById('randPickBtn').onclick=randomizePicks;
+document.getElementById('randValBtn').onclick=randomizeValues;
+document.getElementById('allOffBtn').onclick=allOff;
+(function(){
+  const b=document.getElementById('randChainBtn');
+  if(!b) return;
+  b.onclick=function(){
+    randomizeChainOrder();
+    renderFx();
+    liveRebuildIfPlaying();
+    setStatus('Chain order shuffled · ' + (fxChain||[]).length + ' slots');
+  };
+})();
+document.getElementById('exportBtn').onclick=()=>exportWav();
+(function(){
+  const b=document.getElementById('saveSamplesBtn');
+  if(b) b.onclick=async()=>{ window._DREAM_SAVE_ONLY = true; window.__SW_SKIP_DOWNLOAD = true; try{ await exportWav(); } finally { window._DREAM_SAVE_ONLY = false; window.__SW_SKIP_DOWNLOAD = false; } };
+})();
+
+window.addEventListener('message', e => {
+  const d=e.data;
+  if (!d) return;
+  if (d.type==='DREAM_SAMPLES' || d.type==='DREAM_ABC_SAMPLES'){
+    catalog = (d.items || []).filter(it => {
+      const f=String(it.folder||'').toLowerCase();
+      return it.dropped || it.session || f.startsWith('session');
+    });
+    renderBrowser();
+    setStatus(catalog.length ? (catalog.length + ' user tapes') : 'No user tapes yet — export a machine or drop a file.');
+  }
+});
+
+async function dreamRequestSamples(folderHint){
+  if (!(window.parent && window.parent !== window)) return [];
+  return await new Promise(resolve => {
+    const t=setTimeout(()=>resolve([]), 1800);
+    function onMsg(e){
+      if (!e.data) return;
+      if (e.data.type!=='DREAM_SAMPLES' && e.data.type!=='DREAM_ABC_SAMPLES') return;
+      window.removeEventListener('message', onMsg); clearTimeout(t);
+      resolve(e.data.items||[]);
+    }
+    window.addEventListener('message', onMsg);
+    try { window.parent.postMessage({ type:'DREAM_NEED_SAMPLES', folder: folderHint||'' }, '*'); } catch(_){}
+  });
+}
+
+    function dreamTapeName(){
+      const A=['CROW','TICK','MOTH','BAT','WOLF','RAT','TOAD','OWL','SNAKE','HOG','EEL','FLY','DEER','FOX','LICE','GNAT','WORM','SLUG','CRAB','GOAT','LAMB','HARE','MOOSE','LOON','DOVE','HAWK','FROG','NEWT','PUMA','BEAR','MAGGOT','SPIDER','GRUB','MITE','LEECH'];
+      const F=['BURGER','SOUP','STEW','PIE','HASH','CAKE','BUN','GRAVY','RICE','CHILI','TART','LOAF','BROTH','JAM','NOODLE','TOAST','CURRY','PICKLE','BROIL','PASTE','MILK','DUMPLING','JELLY','BROWNIE','BROTH'];
+      return A[(Math.random()*A.length)|0] + F[(Math.random()*F.length)|0];
+    }
+
+    
+    function dreamForceDownload(blob, filename) {
+      if (window.__SW_SKIP_DOWNLOAD || window._DREAM_SAVE_ONLY) return;
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2500);
+    }
+
+    async function dreamSaveBlob(blob, filename) {
+      try {
+        if (!(window.parent && window.parent !== window)) return false;
+        if (!blob || !blob.size) return false;
+        const buffer = await blob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        const machine = (document.title || '').split(/[—\-·|]/)[0].trim() || 'MACHINE';
+        const fname = filename || (machine + '_' + Date.now() + '.wav');
+        return await new Promise((resolve) => {
+          const t = setTimeout(() => { window.removeEventListener('message', onMsg); resolve(false); }, 8000);
+          function onMsg(e) {
+            if (!e.data || e.data.type !== 'DREAM_SAVE_RESULT') return;
+            window.removeEventListener('message', onMsg);
+            clearTimeout(t);
+            resolve(!!e.data.ok);
+          }
+          window.addEventListener('message', onMsg);
+          try {
+            window.parent.postMessage({
+              type: 'DREAM_SAVE',
+              filename: fname,
+              buffer: (bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)), bytes: new Uint8Array(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)),
+              machine: machine,
+              mime: (blob.type || 'audio/wav')
+            }, '*');
+          } catch (err) {
+            clearTimeout(t);
+            window.removeEventListener('message', onMsg);
+            resolve(false);
+          }
+        });
+      } catch (err) {
+        console.warn('dreamSaveBlob', err);
+        return false;
+      }
+    }
+
+renderSlots();
+renderFx();
+dreamRequestSamples('session').then(items => { catalog=(items||[]).filter(it => String(it.folder||'').toLowerCase().startsWith('session')||it.session); renderBrowser(); });
+setStatus('8 bays. Drop a body. Pick FX. Suicide it.');
+
+(function wanderEyes(){
+  const L = document.getElementById('eyeL');
+  const R = document.getElementById('eyeR');
+  if (!L || !R) return;
+  function look(){
+    if (document.body.classList.contains('is-running')) {
+      L.style.transform = 'translate(0, 4px) scaleY(0.35)';
+      R.style.transform = 'translate(0, 4px) scaleY(0.35)';
+      return;
+    }
+    const x = (Math.random()*18)-9;
+    const y = (Math.random()*10)-5;
+    const x2 = x + (Math.random()*4-2);
+    L.style.transform = 'translate('+x+'px,'+y+'px)';
+    R.style.transform = 'translate('+x2+'px,'+y+'px)';
+  }
+  look();
+  setInterval(look, 900);
+})();
+
+/* Live FX preview — param changes apply while playing */
+(function(){
+  function __swApplyLiveFx(){
+    try {
+      if (typeof playing !== 'undefined' && playing) {
+        if (typeof applyParams === 'function') { applyParams(); return; }
+        if (typeof updateLiveParams === 'function') { updateLiveParams(); return; }
+        if (typeof liveNodes !== 'undefined' && liveNodes) {
+          /* plugins may store AudioParams on liveNodes */
+          return;
+        }
+      }
+    } catch(e){}
+  }
+  document.addEventListener('input', function(ev){
+    const t = ev.target;
+    if (!t || t.type !== 'range') return;
+    __swApplyLiveFx();
+  }, true);
+})();
+
+</script>
+</body>
+</html>
