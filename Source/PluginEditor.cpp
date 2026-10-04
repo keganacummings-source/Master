@@ -11,6 +11,14 @@ constexpr auto workerUrl = "https://dreamshare-api.keganacummings.workers.dev/";
 constexpr int allCategory = -1;
 constexpr int favoritesCategory = -2;
 constexpr int categoryRadioGroup = 1407;
+constexpr auto defaultThemeId = "default";
+constexpr auto defaultBackground = 0xff090909;
+constexpr auto defaultPanel = 0xff141414;
+constexpr auto defaultAccent = 0xfff12828;
+constexpr auto defaultHighlight = 0xffff4444;
+constexpr auto defaultText = 0xffe8e0d4;
+constexpr auto defaultMuted = 0xff9a8980;
+constexpr auto defaultBorder = 0xff3a2824;
 
 juce::ThreadPool& dreamShareWorkerPool() {
     static juce::ThreadPool pool(2);
@@ -146,7 +154,8 @@ public:
         favorite.onClick = [this] {
             const auto id = effectId(effectIndex);
             proc.setEffectFavorite(id, favorite.getToggleState());
-            favorite.setButtonText(favorite.getToggleState() ? "★" : "☆");
+            favoriteState = favorite.getToggleState();
+            favorite.setButtonText(favorite.getToggleState() ? "FAV *" : "FAV +");
             favoriteChangedCallback();
         };
         addAndMakeVisible(favorite);
@@ -179,9 +188,9 @@ public:
     int getEffectIndex() const { return effectIndex; }
 
     void updateFavoriteState() {
-        const bool isFavorite = proc.isEffectFavorite(effectId(effectIndex));
-        favorite.setToggleState(isFavorite, juce::dontSendNotification);
-        favorite.setButtonText(isFavorite ? "★" : "☆");
+        favoriteState = proc.isEffectFavorite(effectId(effectIndex));
+        favorite.setToggleState(favoriteState, juce::dontSendNotification);
+        favorite.setButtonText(favoriteState ? "FAV *" : "FAV +");
     }
 
     void setPalette(juce::Colour background, juce::Colour panel, juce::Colour border,
@@ -195,7 +204,7 @@ public:
         favorite.setColour(juce::TextButton::buttonColourId, panel);
         favorite.setColour(juce::TextButton::buttonOnColourId, highlight.withAlpha(0.22f));
         favorite.setColour(juce::TextButton::textColourOffId, accent);
-        favorite.setColour(juce::TextButton::textColourOnId, highlight);
+        favorite.setColour(juce::TextButton::textColourOnId, juce::Colour(0xffffce68));
         enabled.setColour(juce::ToggleButton::textColourId, text);
         enabled.setColour(juce::ToggleButton::tickColourId, highlight);
         amount.setColour(juce::Slider::trackColourId, accent);
@@ -206,12 +215,16 @@ public:
 
     void paint(juce::Graphics& g) override {
         const bool isOn = enabled.getToggleState();
+        const bool isFavorite = favoriteState;
+        const auto outline = isFavorite ? juce::Colour(0xffffce68)
+                                        : (isOn ? accentColour : borderColour);
         g.setColour(panelColour);
         g.fillRoundedRectangle(getLocalBounds().toFloat(), 4.0f);
-        g.setColour(isOn ? accentColour : borderColour);
-        g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(0.5f), 4.0f, isOn ? 1.7f : 1.0f);
-        if (isOn) {
-            g.setColour(accentColour.withAlpha(0.8f));
+        g.setColour(outline);
+        g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(0.5f), 4.0f,
+                               isFavorite || isOn ? 1.7f : 1.0f);
+        if (isFavorite || isOn) {
+            g.setColour(isFavorite ? outline.withAlpha(0.9f) : accentColour.withAlpha(0.8f));
             g.fillRoundedRectangle(1.0f, 6.0f, 3.0f, static_cast<float>(getHeight() - 12), 1.5f);
         }
     }
@@ -219,7 +232,7 @@ public:
     void resized() override {
         auto bounds = getLocalBounds().reduced(8, 5);
         auto header = bounds.removeFromTop(25);
-        favorite.setBounds(header.removeFromRight(27).reduced(1));
+        favorite.setBounds(header.removeFromRight(55).reduced(1));
         enabled.setBounds(header.removeFromRight(49).reduced(1));
         name.setBounds(header.reduced(1, 0));
         amount.setBounds(bounds.removeFromTop(22).reduced(2, 1));
@@ -235,11 +248,77 @@ private:
     juce::Slider amount;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> enabledAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> amountAttachment;
+    bool favoriteState = false;
     juce::Colour backgroundColour, panelColour, borderColour, accentColour, highlightColour;
 };
 
+class DreamMasterLiteEditor::LoginOverlay final : public juce::Component {
+public:
+    LoginOverlay() {
+        setInterceptsMouseClicks(true, true);
+    }
+
+    void setPalette(juce::Colour panel, juce::Colour border, juce::Colour accent) {
+        panelColour = panel;
+        borderColour = border;
+        accentColour = accent;
+        repaint();
+    }
+
+    void paint(juce::Graphics& g) override {
+        g.fillAll(juce::Colours::black.withAlpha(0.78f));
+        const auto panel = getLocalBounds().withSizeKeepingCentre(430, 260).toFloat();
+        g.setColour(panelColour);
+        g.fillRoundedRectangle(panel, 8.0f);
+        g.setColour(borderColour);
+        g.drawRoundedRectangle(panel, 8.0f, 1.0f);
+        g.setColour(accentColour);
+        g.drawRoundedRectangle(panel.reduced(2.0f), 7.0f, 1.0f);
+    }
+
+private:
+    juce::Colour panelColour{defaultPanel}, borderColour{defaultBorder}, accentColour{defaultAccent};
+};
+
+class DreamMasterLiteEditor::EffectBrowserModel final : public juce::ListBoxModel {
+public:
+    explicit EffectBrowserModel(DreamMasterLiteEditor& owner) : editor(owner) {}
+
+    int getNumRows() override { return static_cast<int>(editor.builderBrowserEffects.size()); }
+
+    void paintListBoxItem(int row, juce::Graphics& g, int width, int height, bool selected) override {
+        if (row < 0 || row >= static_cast<int>(editor.builderBrowserEffects.size()))
+            return;
+        const auto index = editor.builderBrowserEffects[static_cast<size_t>(row)];
+        const bool favorite = editor.proc.isEffectFavorite(effectId(index));
+        g.fillAll(selected ? editor.accentColour.withAlpha(0.2f) : editor.panelColour);
+        g.setColour(selected ? editor.highlightColour : editor.borderColour.withAlpha(0.5f));
+        g.drawHorizontalLine(height - 1, 0.0f, static_cast<float>(width));
+        g.setColour(favorite ? juce::Colour(0xffffce68) : editor.textColour);
+        g.setFont(juce::Font(juce::FontOptions(11.0f, favorite ? juce::Font::bold : juce::Font::plain)));
+        g.drawText((favorite ? "*  " : "   ") + effectName(index),
+                   9, 0, width - 18, height, juce::Justification::centredLeft);
+    }
+
+    void selectedRowsChanged(int row) override { editor.selectBuilderBrowserRow(row); }
+
+private:
+    DreamMasterLiteEditor& editor;
+};
+
 DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor)
-    : AudioProcessorEditor(processor), proc(processor) {
+    : AudioProcessorEditor(processor), proc(processor),
+      loginOverlay(std::make_unique<LoginOverlay>()) {
+    backgroundColour = juce::Colour(defaultBackground);
+    panelColour = juce::Colour(defaultPanel);
+    accentColour = juce::Colour(defaultAccent);
+    highlightColour = juce::Colour(defaultHighlight);
+    textColour = juce::Colour(defaultText);
+    mutedColour = juce::Colour(defaultMuted);
+    borderColour = juce::Colour(defaultBorder);
+    auto* initialTheme = new juce::DynamicObject();
+    initialTheme->setProperty("id", defaultThemeId);
+    currentThemePack = juce::var(initialTheme);
     title.setText("DREAMMASTERLITE", juce::dontSendNotification);
     title.setFont(juce::Font(juce::FontOptions(27.0f, juce::Font::bold)));
     title.setJustificationType(juce::Justification::centred);
@@ -252,12 +331,12 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
     countLabel.setFont(juce::Font(juce::FontOptions(10.5f, juce::Font::bold)));
     addAndMakeVisible(countLabel);
     onlineLabel.setFont(juce::Font(juce::FontOptions(10.0f, juce::Font::bold)));
-    onlineLabel.setText("ONLINE: —", juce::dontSendNotification);
+    onlineLabel.setText("ONLINE: --", juce::dontSendNotification);
     addAndMakeVisible(onlineLabel);
     accountLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
     addAndMakeVisible(accountLabel);
 
-    styleButton(randomButton, juce::Colour(0xff102b17), accentColour, highlightColour);
+    styleButton(randomButton, panelColour.darker(0.12f), accentColour, highlightColour);
     styleButton(extremeButton, juce::Colour(0xff241018), juce::Colour(0xffff7272), juce::Colour(0xffffb047));
     styleButton(definedButton, panelColour, highlightColour, accentColour);
     styleButton(resetButton, juce::Colour(0xff20130e), textColour, highlightColour);
@@ -277,7 +356,13 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
     builderPageButton.onClick = [this] { showPage(true); };
     loginButton.onClick = [this] { showLoginPopup(); };
     logoutButton.onClick = [this] { logout(); };
-    themeButton.onClick = [this] { showThemeMenu(); };
+    themeButton.setButtonText("THEME: DEFAULT");
+    themeButton.onClick = [this] {
+        if (authenticated)
+            showThemeMenu();
+        else
+            showLoginPopup();
+    };
 
     for (int i = 0; i < 10; ++i) {
         auto* button = categoryButtons.add(new juce::TextButton());
@@ -289,7 +374,7 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
             button->setTooltip("Show all effect categories");
             button->onClick = [this] { setCategory(allCategory); };
         } else if (i == 1) {
-            button->setButtonText("★ FAVORITES");
+            button->setButtonText("FAVORITES *");
             button->setTooltip("Show favorites from every category");
             button->onClick = [this] { setCategory(favoritesCategory); };
         } else {
@@ -301,7 +386,7 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
         addAndMakeVisible(*button);
     }
 
-    searchEditor.setTextToShowWhenEmpty("Search effects…", juce::Colours::grey);
+    searchEditor.setTextToShowWhenEmpty("Search effects...", juce::Colours::grey);
     searchEditor.setColour(juce::TextEditor::backgroundColourId, panelColour);
     searchEditor.setColour(juce::TextEditor::textColourId, textColour);
     searchEditor.setColour(juce::TextEditor::outlineColourId, borderColour);
@@ -314,30 +399,50 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
     viewport.setColour(juce::ScrollBar::trackColourId, backgroundColour);
     addAndMakeVisible(viewport);
 
-    styleButton(chooseEffectButton, panelColour, accentColour, highlightColour);
-    styleButton(addEffectButton, juce::Colour(0xff102b17), accentColour, highlightColour);
+    styleButton(addEffectButton, panelColour.darker(0.12f), accentColour, highlightColour);
     styleButton(moveUpButton, panelColour, accentColour, highlightColour);
     styleButton(moveDownButton, panelColour, accentColour, highlightColour);
     styleButton(removeEffectButton, juce::Colour(0xff291410), juce::Colour(0xffff9b83), juce::Colour(0xffffc0a8));
     styleButton(savePresetButton, panelColour, accentColour, highlightColour);
     styleButton(loadPresetButton, panelColour, accentColour, highlightColour);
     styleButton(deletePresetButton, panelColour, mutedColour, highlightColour);
-    for (auto* button : {&chooseEffectButton, &addEffectButton, &moveUpButton, &moveDownButton,
+    for (auto* button : {&addEffectButton, &moveUpButton, &moveDownButton,
                          &removeEffectButton, &savePresetButton, &loadPresetButton, &deletePresetButton})
         builderContent.addAndMakeVisible(*button);
-    chooseEffectButton.onClick = [this] { showEffectBrowserMenu(); };
     addEffectButton.onClick = [this] { addBuilderEffect(); };
 
-    builderLockLabel.setText("FX BUILDER LOCKED · LOG IN TO DREAMSHARE", juce::dontSendNotification);
+    builderLockLabel.setText("FX BUILDER LOCKED - LOG IN TO DREAMSHARE", juce::dontSendNotification);
     builderLockLabel.setFont(juce::Font(juce::FontOptions(15.0f, juce::Font::bold)));
     builderLockLabel.setJustificationType(juce::Justification::centredLeft);
     builderContent.addAndMakeVisible(builderLockLabel);
+    effectBrowserHeading.setText("1. EFFECT LIBRARY", juce::dontSendNotification);
+    effectBrowserHeading.setFont(juce::Font(juce::FontOptions(12.0f, juce::Font::bold)));
+    effectBrowserHeading.setJustificationType(juce::Justification::centredLeft);
+    builderContent.addAndMakeVisible(effectBrowserHeading);
+    chainHeading.setText("2. YOUR CHAIN", juce::dontSendNotification);
+    chainHeading.setFont(juce::Font(juce::FontOptions(12.0f, juce::Font::bold)));
+    chainHeading.setJustificationType(juce::Justification::centredLeft);
+    builderContent.addAndMakeVisible(chainHeading);
+    chosenEffectLabel.setText("Select a module and set its amount before adding.", juce::dontSendNotification);
+    chosenEffectLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    chosenEffectLabel.setJustificationType(juce::Justification::centredLeft);
+    builderContent.addAndMakeVisible(chosenEffectLabel);
+    effectBrowserModel = std::make_unique<EffectBrowserModel>(*this);
+    effectBrowserList.setModel(effectBrowserModel.get());
+    effectBrowserList.setRowHeight(25);
+    effectBrowserList.setMultipleSelectionEnabled(false);
+    effectBrowserList.setColour(juce::ListBox::backgroundColourId, panelColour);
+    effectBrowserList.setColour(juce::ListBox::outlineColourId, borderColour);
+    builderContent.addAndMakeVisible(effectBrowserList);
     builderAmountSlider.setRange(0.0, 1.0, 0.001);
     builderAmountSlider.setValue(0.22, juce::dontSendNotification);
     builderAmountSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     builderAmountSlider.setTextBoxStyle(juce::Slider::TextBoxRight, false, 52, 22);
     builderAmountSlider.setScrollWheelEnabled(false);
-    builderAmountSlider.onValueChange = [this] { updateBuilderAmount(); };
+    builderAmountSlider.onValueChange = [this] {
+        pendingBuilderAmount = static_cast<float>(builderAmountSlider.getValue());
+        updateBuilderAmount();
+    };
     builderContent.addAndMakeVisible(builderAmountSlider);
 
     chainList.setRowHeight(27);
@@ -366,17 +471,19 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
     loadPresetButton.onClick = [this] { loadSelectedPreset(); };
     deletePresetButton.onClick = [this] { deleteSelectedPreset(); };
     builderStatusLabel.setFont(juce::Font(juce::FontOptions(10.5f)));
+    builderStatusLabel.setText("Choose a module from the library to start your chain.",
+                               juce::dontSendNotification);
     builderContent.addAndMakeVisible(builderStatusLabel);
     builderContent.setVisible(false);
 
     loginTitle.setText("DREAMSHARE LOGIN", juce::dontSendNotification);
     loginTitle.setFont(juce::Font(juce::FontOptions(18.0f, juce::Font::bold)));
     loginTitle.setJustificationType(juce::Justification::centred);
-    loginOverlay.addAndMakeVisible(loginTitle);
+    loginOverlay->addAndMakeVisible(loginTitle);
     loginStatusLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
     loginStatusLabel.setJustificationType(juce::Justification::centred);
     loginStatusLabel.setColour(juce::Label::textColourId, mutedColour);
-    loginOverlay.addAndMakeVisible(loginStatusLabel);
+    loginOverlay->addAndMakeVisible(loginStatusLabel);
     usernameEditor.setTextToShowWhenEmpty("Username", juce::Colours::grey);
     passwordEditor.setTextToShowWhenEmpty("Password", juce::Colours::grey);
     passwordEditor.setPasswordCharacter(0x2022);
@@ -384,25 +491,28 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
         editor->setColour(juce::TextEditor::backgroundColourId, panelColour);
         editor->setColour(juce::TextEditor::textColourId, textColour);
         editor->setColour(juce::TextEditor::outlineColourId, borderColour);
-        loginOverlay.addAndMakeVisible(*editor);
+        loginOverlay->addAndMakeVisible(*editor);
     }
-    loginOverlay.addAndMakeVisible(loginSubmitButton);
-    loginOverlay.addAndMakeVisible(loginCancelButton);
-    styleButton(loginSubmitButton, juce::Colour(0xff102b17), accentColour, highlightColour);
+    loginOverlay->addAndMakeVisible(loginSubmitButton);
+    loginOverlay->addAndMakeVisible(loginCancelButton);
+    styleButton(loginSubmitButton, panelColour.darker(0.12f), accentColour, highlightColour);
     styleButton(loginCancelButton, panelColour, mutedColour, highlightColour);
     loginSubmitButton.onClick = [this] { login(); };
     loginCancelButton.onClick = [this] { dismissLoginPopup(); };
     passwordEditor.onReturnKey = [this] { login(); };
-    addAndMakeVisible(loginOverlay);
-    loginOverlay.setVisible(false);
+    addAndMakeVisible(*loginOverlay);
+    loginOverlay->setVisible(false);
 
     updateCategoryButtons();
+    loginOverlay->setPalette(panelColour, borderColour, accentColour);
+    updateBuilderChainList();
     updateVisibleEffects();
     updateAuthenticationUi();
     updateActiveCount();
     setResizable(true, true);
     setResizeLimits(760, 580, 1500, 1200);
     setSize(1040, 800);
+    applyPalette();
 
     if (proc.hasDreamShareSession()) {
         authenticated = true;
@@ -418,6 +528,7 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
 
 DreamMasterLiteEditor::~DreamMasterLiteEditor() {
     stopTimer();
+    effectBrowserList.setModel(nullptr);
     viewport.setViewedComponent(nullptr, false);
 }
 
@@ -480,16 +591,6 @@ void DreamMasterLiteEditor::paint(juce::Graphics& g) {
     g.drawRect(getLocalBounds().reduced(2), 2);
     g.setColour(highlightColour.withAlpha(0.38f));
     g.drawRect(getLocalBounds().reduced(5), 1);
-
-    if (loginOverlay.isVisible()) {
-        g.setColour(juce::Colours::black.withAlpha(0.76f));
-        g.fillRect(getLocalBounds());
-        auto panel = getLocalBounds().withSizeKeepingCentre(430, 260).toFloat();
-        g.setColour(panelColour);
-        g.fillRoundedRectangle(panel, 8.0f);
-        g.setColour(accentColour);
-        g.drawRoundedRectangle(panel, 8.0f, 1.6f);
-    }
 }
 
 void DreamMasterLiteEditor::resized() {
@@ -539,28 +640,45 @@ void DreamMasterLiteEditor::resized() {
         effectCards[position]->setBounds(col * (cardWidth + gap), row * (cardHeight + gap), cardWidth, cardHeight);
     }
 
-    builderContent.setSize(juce::jmax(500, viewport.getWidth() - 16), 580);
+    const int builderWidth = juce::jmax(500, viewport.getWidth() - 16);
+    const int builderHeight = juce::jmax(460, viewport.getHeight() - 16);
+    builderContent.setSize(builderWidth, builderHeight);
     auto builderBounds = builderContent.getLocalBounds().reduced(12);
-    builderLockLabel.setBounds(builderBounds.removeFromTop(30));
-    auto chooseRow = builderBounds.removeFromTop(32);
-    chooseEffectButton.setBounds(chooseRow.removeFromLeft(250).reduced(2));
-    builderAmountSlider.setBounds(chooseRow.removeFromLeft(240).reduced(2));
-    addEffectButton.setBounds(chooseRow.removeFromLeft(145).reduced(2));
-    chainList.setBounds(builderBounds.removeFromTop(212).reduced(2));
-    auto orderRow = builderBounds.removeFromTop(29);
-    moveUpButton.setBounds(orderRow.removeFromLeft(72).reduced(2));
-    moveDownButton.setBounds(orderRow.removeFromLeft(82).reduced(2));
-    removeEffectButton.setBounds(orderRow.removeFromLeft(100).reduced(2));
-    auto saveRow = builderBounds.removeFromTop(32);
-    presetNameEditor.setBounds(saveRow.removeFromLeft(275).reduced(2));
-    savePresetButton.setBounds(saveRow.removeFromLeft(110).reduced(2));
-    auto recallRow = builderBounds.removeFromTop(32);
-    presetChoiceBox.setBounds(recallRow.removeFromLeft(275).reduced(2));
-    loadPresetButton.setBounds(recallRow.removeFromLeft(75).reduced(2));
-    deletePresetButton.setBounds(recallRow.removeFromLeft(82).reduced(2));
-    builderStatusLabel.setBounds(builderBounds.removeFromTop(24).reduced(4, 1));
+    builderLockLabel.setBounds(builderBounds.removeFromTop(24));
+    builderBounds.removeFromTop(4);
+    const int paneGap = 12;
+    auto leftPane = builderBounds.removeFromLeft((builderBounds.getWidth() - paneGap) / 2);
+    builderBounds.removeFromLeft(paneGap);
+    auto rightPane = builderBounds;
+    effectBrowserHeading.setBounds(leftPane.removeFromTop(23));
+    chainHeading.setBounds(rightPane.removeFromTop(23));
+    leftPane.removeFromTop(3);
+    rightPane.removeFromTop(3);
+    const int pickerControlsHeight = 68;
+    effectBrowserList.setBounds(leftPane.removeFromTop(juce::jmax(100, leftPane.getHeight() - pickerControlsHeight)).reduced(1));
+    leftPane.removeFromTop(3);
+    chosenEffectLabel.setBounds(leftPane.removeFromTop(19));
+    auto pickerRow = leftPane.removeFromTop(29);
+    builderAmountSlider.setBounds(pickerRow.removeFromLeft(juce::jmax(110, pickerRow.getWidth() - 116)).reduced(2));
+    addEffectButton.setBounds(pickerRow.reduced(2));
 
-    loginOverlay.setBounds(getLocalBounds());
+    const int bottomControlsHeight = 126;
+    chainList.setBounds(rightPane.removeFromTop(juce::jmax(90, rightPane.getHeight() - bottomControlsHeight)).reduced(1));
+    rightPane.removeFromTop(3);
+    auto orderRow = rightPane.removeFromTop(28);
+    moveUpButton.setBounds(orderRow.removeFromLeft(70).reduced(1));
+    moveDownButton.setBounds(orderRow.removeFromLeft(82).reduced(1));
+    removeEffectButton.setBounds(orderRow.removeFromLeft(96).reduced(1));
+    auto saveRow = rightPane.removeFromTop(29);
+    presetNameEditor.setBounds(saveRow.removeFromLeft(juce::jmax(110, saveRow.getWidth() - 96)).reduced(1));
+    savePresetButton.setBounds(saveRow.reduced(1));
+    auto recallRow = rightPane.removeFromTop(29);
+    presetChoiceBox.setBounds(recallRow.removeFromLeft(juce::jmax(110, recallRow.getWidth() - 164)).reduced(1));
+    loadPresetButton.setBounds(recallRow.removeFromLeft(72).reduced(1));
+    deletePresetButton.setBounds(recallRow.reduced(1));
+    builderStatusLabel.setBounds(rightPane.removeFromTop(24).reduced(2, 1));
+
+    loginOverlay->setBounds(getLocalBounds());
     const auto popup = getLocalBounds().withSizeKeepingCentre(430, 260).reduced(28);
     auto loginBounds = juce::Rectangle<int>(popup.getX(), popup.getY(), popup.getWidth(), popup.getHeight());
     loginTitle.setBounds(loginBounds.removeFromTop(34));
@@ -603,7 +721,7 @@ void DreamMasterLiteEditor::randomize(int minimum, int maximum, bool randomAmoun
     }
     proc.setActiveEffectOrder({});
     updateActiveCount();
-    countLabel.setText(juce::String(selected.size()) + " ACTIVE · "
+    countLabel.setText(juce::String(selected.size()) + " ACTIVE | "
         + (randomAmounts ? "RANDOM AMOUNTS" : "STABLE AMOUNTS"),
                        juce::dontSendNotification);
 }
@@ -629,7 +747,8 @@ void DreamMasterLiteEditor::updateCategoryButtons() {
     for (int i = 0; i < categoryButtons.size(); ++i) {
         const int category = i == 0 ? allCategory : (i == 1 ? favoritesCategory : i - 2);
         categoryButtons[i]->setToggleState(category == selected, juce::dontSendNotification);
-        styleButton(*categoryButtons[i], category == selected ? juce::Colour(0xff102b17) : panelColour,
+        styleButton(*categoryButtons[i], category == selected
+                        ? panelColour.interpolatedWith(accentColour, 0.16f) : panelColour,
                     category == selected ? accentColour : mutedColour,
                     category == selected ? highlightColour : accentColour);
     }
@@ -652,6 +771,7 @@ void DreamMasterLiteEditor::updateVisibleEffects() {
         visibleEffects.push_back(i);
     }
     visibleEffects = dm::sortEffectsWithFavoritesFirst(std::move(visibleEffects), favorites);
+    updateEffectBrowserList();
 
     effectCards.clear();
     juce::Component::SafePointer<DreamMasterLiteEditor> safeThis(this);
@@ -667,6 +787,43 @@ void DreamMasterLiteEditor::updateVisibleEffects() {
     }
     resized();
     content.repaint();
+}
+
+void DreamMasterLiteEditor::updateEffectBrowserList() {
+    builderBrowserEffects.clear();
+    const auto favorites = proc.getFavoriteEffectIds();
+    const auto query = searchEditor.getText().trim().toLowerCase();
+    for (int i = 0; i < dm::DspEngine::effectCount; ++i) {
+        if (selectedCategory >= 0 && dm::effectCategoryIndex(i) != selectedCategory)
+            continue;
+        const auto id = effectId(i);
+        const bool favorite = std::find(favorites.begin(), favorites.end(), id) != favorites.end();
+        if (showFavoritesOnly && !favorite)
+            continue;
+        if (query.isNotEmpty() && !effectName(i).toLowerCase().contains(query)
+            && !id.toLowerCase().contains(query))
+            continue;
+        builderBrowserEffects.push_back(i);
+    }
+    builderBrowserEffects = dm::sortEffectsWithFavoritesFirst(std::move(builderBrowserEffects), favorites);
+    effectBrowserHeading.setText("1. EFFECT LIBRARY (" + juce::String(builderBrowserEffects.size()) + ")",
+                                 juce::dontSendNotification);
+    effectBrowserList.updateContent();
+    effectBrowserList.repaint();
+}
+
+void DreamMasterLiteEditor::selectBuilderBrowserRow(int row) {
+    if (row < 0 || row >= static_cast<int>(builderBrowserEffects.size()))
+        return;
+    selectedBuilderEffect = builderBrowserEffects[static_cast<size_t>(row)];
+    chosenEffectLabel.setText("New step: " + effectName(selectedBuilderEffect),
+                              juce::dontSendNotification);
+    builderStatusLabel.setText("Set the amount, then choose ADD TO CHAIN.", juce::dontSendNotification);
+    chainList.deselectAllRows();
+    pendingBuilderAmount = 0.22f;
+    if (auto* parameter = proc.state.getRawParameterValue("amt" + juce::String(selectedBuilderEffect)))
+        pendingBuilderAmount = parameter->load(std::memory_order_relaxed);
+    builderAmountSlider.setValue(pendingBuilderAmount, juce::dontSendNotification);
 }
 
 void DreamMasterLiteEditor::showPage(bool builder) {
@@ -703,69 +860,14 @@ void DreamMasterLiteEditor::paintListBoxItem(int row, juce::Graphics& g, int wid
 }
 
 void DreamMasterLiteEditor::selectedRowsChanged(int selectedRow) {
-    if (selectedRow >= 0 && selectedRow < static_cast<int>(builderSteps.size()))
+    if (selectedRow >= 0 && selectedRow < static_cast<int>(builderSteps.size())) {
         builderAmountSlider.setValue(builderSteps[static_cast<size_t>(selectedRow)].amount, juce::dontSendNotification);
-}
-
-void DreamMasterLiteEditor::showEffectBrowserMenu() {
-    juce::PopupMenu menu;
-    const auto favorites = proc.getFavoriteEffectIds();
-    const auto query = searchEditor.getText().trim().toLowerCase();
-    auto matches = [this, &query, &favorites](int index, int category) {
-        if (category >= 0 && dm::effectCategoryIndex(index) != category)
-            return false;
-        if (selectedCategory >= 0 && dm::effectCategoryIndex(index) != selectedCategory)
-            return false;
-        if (showFavoritesOnly
-            && std::find(favorites.begin(), favorites.end(), effectId(index)) == favorites.end())
-            return false;
-        return query.isEmpty() || effectName(index).toLowerCase().contains(query)
-            || effectId(index).toLowerCase().contains(query);
-    };
-    auto addEffects = [&favorites, &matches](juce::PopupMenu& target, int category) {
-        std::vector<int> indices;
-        for (int i = 0; i < dm::DspEngine::effectCount; ++i) {
-            if ((category < 0 || dm::effectCategoryIndex(i) == category)
-                && matches(i, category))
-                indices.push_back(i);
-        }
-        indices = dm::sortEffectsWithFavoritesFirst(std::move(indices), favorites);
-        for (const int index : indices) {
-            const bool isFavorite = std::find(favorites.begin(), favorites.end(), effectId(index)) != favorites.end();
-            target.addItem(index + 1, (isFavorite ? "★  " : "") + effectName(index));
-        }
-    };
-    juce::PopupMenu favoriteMenu;
-    for (const auto& id : favorites) {
-        const auto found = std::find(dm::featureIds.begin(), dm::featureIds.end(), id.toStdString());
-        if (found == dm::featureIds.end())
-            continue;
-        const int index = static_cast<int>(std::distance(dm::featureIds.begin(), found));
-        if (matches(index, allCategory))
-            favoriteMenu.addItem(index + 1, effectName(index));
+        chosenEffectLabel.setText("Editing step " + juce::String(selectedRow + 1) + ": "
+            + effectName(builderSteps[static_cast<size_t>(selectedRow)].effectIndex),
+            juce::dontSendNotification);
+        builderStatusLabel.setText("Adjust the amount or reorder/remove this chain step.",
+                                   juce::dontSendNotification);
     }
-    if (favoriteMenu.getNumItems() > 0)
-        menu.addSubMenu("★ FAVORITES", favoriteMenu);
-    for (int category = 0; category < static_cast<int>(dm::effectCategories.size()); ++category) {
-        juce::PopupMenu categoryMenu;
-        addEffects(categoryMenu, category);
-        if (categoryMenu.getNumItems() > 0)
-            menu.addSubMenu(juce::String(dm::effectCategories[static_cast<size_t>(category)].data()), categoryMenu);
-    }
-    if (menu.getNumItems() == 0)
-        return;
-    juce::Component::SafePointer<DreamMasterLiteEditor> safeThis(this);
-    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&chooseEffectButton),
-        [safeThis](int result) {
-            if (safeThis == nullptr || result <= 0)
-                return;
-            safeThis->selectedBuilderEffect = result - 1;
-            safeThis->chooseEffectButton.setButtonText(effectName(safeThis->selectedBuilderEffect));
-            if (auto* parameter = safeThis->proc.state.getRawParameterValue(
-                    "amt" + juce::String(safeThis->selectedBuilderEffect)))
-                safeThis->builderAmountSlider.setValue(parameter->load(std::memory_order_relaxed),
-                                                       juce::dontSendNotification);
-        });
 }
 
 void DreamMasterLiteEditor::addBuilderEffect() {
@@ -777,10 +879,11 @@ void DreamMasterLiteEditor::addBuilderEffect() {
         builderStatusLabel.setText("Each module can appear only once in a chain.", juce::dontSendNotification);
         return;
     }
-    builderSteps.push_back({index, static_cast<float>(builderAmountSlider.getValue())});
+    builderSteps.push_back({index, pendingBuilderAmount});
     updateBuilderChainList();
     chainList.selectRow(static_cast<int>(builderSteps.size()) - 1);
-    builderStatusLabel.setText("Chain order is the DSP processing order.", juce::dontSendNotification);
+    builderStatusLabel.setText("Added. Select a chain row to edit its amount; use UP or DOWN to reorder.",
+                               juce::dontSendNotification);
 }
 
 void DreamMasterLiteEditor::saveBuilderPreset() {
@@ -854,13 +957,17 @@ void DreamMasterLiteEditor::moveSelectedEffect(int direction) {
 
 void DreamMasterLiteEditor::updateBuilderAmount() {
     const int selected = chainList.getSelectedRow();
-    if (selected < 0 || selected >= static_cast<int>(builderSteps.size()))
+    if (selected < 0 || selected >= static_cast<int>(builderSteps.size())) {
+        pendingBuilderAmount = static_cast<float>(builderAmountSlider.getValue());
         return;
+    }
     builderSteps[static_cast<size_t>(selected)].amount = static_cast<float>(builderAmountSlider.getValue());
     chainList.repaintRow(selected);
 }
 
 void DreamMasterLiteEditor::updateBuilderChainList() {
+    chainHeading.setText("2. YOUR CHAIN (" + juce::String(builderSteps.size()) + ")",
+                         juce::dontSendNotification);
     chainList.updateContent();
     chainList.repaint();
 }
@@ -885,20 +992,20 @@ void DreamMasterLiteEditor::updateAuthenticationUi() {
     authenticated = proc.hasDreamShareSession();
     loginButton.setVisible(!authenticated);
     logoutButton.setVisible(authenticated);
-    themeButton.setEnabled(authenticated && !themeIds.isEmpty());
+    themeButton.setEnabled(true);
     builderLockLabel.setVisible(!builderAvailable);
-    builderLockLabel.setText(!authenticated ? "FX BUILDER LOCKED · LOG IN TO DREAMSHARE"
-        : (builderAvailable ? "FX BUILDER · CHAIN ORDER IS DSP ORDER" : "FX BUILDER ACCESS UNAVAILABLE"),
+    builderLockLabel.setText(!authenticated ? "FX BUILDER LOCKED - LOG IN TO DREAMSHARE"
+        : (builderAvailable ? "FX BUILDER - CHAIN ORDER IS DSP ORDER" : "FX BUILDER ACCESS UNAVAILABLE"),
         juce::dontSendNotification);
     const std::array<juce::Component*, 12> builderControls{{
-        &chooseEffectButton, &builderAmountSlider, &addEffectButton, &chainList, &moveUpButton, &moveDownButton,
+        &effectBrowserList, &builderAmountSlider, &addEffectButton, &chainList, &moveUpButton, &moveDownButton,
         &removeEffectButton, &presetNameEditor, &presetChoiceBox, &savePresetButton, &loadPresetButton,
         &deletePresetButton
     }};
     for (auto* control : builderControls)
         control->setEnabled(builderAvailable);
     if (authenticated) {
-        accountLabel.setText("SIGNED IN · " + proc.getDreamShareUser(), juce::dontSendNotification);
+        accountLabel.setText("SIGNED IN | " + proc.getDreamShareUser(), juce::dontSendNotification);
         updatePresetList();
     } else {
         accountLabel.setText("SIGNED OUT", juce::dontSendNotification);
@@ -924,15 +1031,15 @@ void DreamMasterLiteEditor::showLoginPopup() {
     if (authenticated)
         return;
     loginStatusLabel.setText({}, juce::dontSendNotification);
-    loginOverlay.setVisible(true);
-    loginOverlay.toFront(true);
+    loginOverlay->setVisible(true);
+    loginOverlay->toFront(true);
     usernameEditor.grabKeyboardFocus();
     resized();
     repaint();
 }
 
 void DreamMasterLiteEditor::dismissLoginPopup() {
-    loginOverlay.setVisible(false);
+    loginOverlay->setVisible(false);
     updateLoginPreference(true);
     repaint();
 }
@@ -953,9 +1060,9 @@ void DreamMasterLiteEditor::login() {
     const juce::var body(request.get());
     passwordEditor.clear();
     loginRequestPending = true;
-    loginStatusLabel.setText("CONNECTING SECURELY…", juce::dontSendNotification);
+    loginStatusLabel.setText("CONNECTING SECURELY...", juce::dontSendNotification);
     loginSubmitButton.setEnabled(false);
-    loginSubmitButton.setButtonText("SIGNING IN…");
+    loginSubmitButton.setButtonText("SIGNING IN...");
     juce::Component::SafePointer<DreamMasterLiteEditor> safeThis(this);
     requestWorkerAsync(&body, false, [safeThis](WorkerReply reply) {
         if (safeThis == nullptr)
@@ -981,15 +1088,15 @@ void DreamMasterLiteEditor::login() {
         }
         const bool savedSecurely = safeThis->proc.setDreamShareSession(token, user, theme);
         safeThis->updateLoginPreference(true);
-        safeThis->loginOverlay.setVisible(false);
+        safeThis->loginOverlay->setVisible(false);
         safeThis->authenticated = true;
         safeThis->populateThemes(response->getProperty("themes"));
         safeThis->applyThemePack(response->getProperty("themePack"));
         safeThis->updateAuthenticationUi();
         safeThis->refreshCapabilities();
         safeThis->sendPresenceHeartbeat();
-        safeThis->accountLabel.setText("SIGNED IN · " + safeThis->proc.getDreamShareUser()
-            + (savedSecurely ? " · SESSION SAVED" : " · SESSION MEMORY-ONLY"), juce::dontSendNotification);
+        safeThis->accountLabel.setText("SIGNED IN | " + safeThis->proc.getDreamShareUser()
+            + (savedSecurely ? " | SESSION SAVED" : " | SESSION MEMORY-ONLY"), juce::dontSendNotification);
     });
 }
 
@@ -999,7 +1106,7 @@ void DreamMasterLiteEditor::logout() {
     builderAvailable = false;
     updateLoginPreference(true);
     updateAuthenticationUi();
-    accountLabel.setText("SIGNED OUT · LOG IN WHEN NEEDED", juce::dontSendNotification);
+    accountLabel.setText("SIGNED OUT | LOG IN WHEN NEEDED", juce::dontSendNotification);
 }
 
 void DreamMasterLiteEditor::validateSession() {
@@ -1016,7 +1123,7 @@ void DreamMasterLiteEditor::validateSession() {
             return;
         safeThis->sessionValidationPending = false;
         if (reply.error.isNotEmpty()) {
-            safeThis->accountLabel.setText("SESSION CHECK FAILED · " + reply.error, juce::dontSendNotification);
+            safeThis->accountLabel.setText("SESSION CHECK FAILED | " + reply.error, juce::dontSendNotification);
             return;
         }
         auto* response = reply.payload.getDynamicObject();
@@ -1080,7 +1187,7 @@ void DreamMasterLiteEditor::refreshCapabilities() {
                         safeThis->themeNames.remove(i);
                     }
                 }
-                safeThis->themeButton.setEnabled(safeThis->authenticated && !safeThis->themeIds.isEmpty());
+                safeThis->themeButton.setEnabled(true);
                 safeThis->updateThemeButtonLabel();
             }
         }
@@ -1155,12 +1262,12 @@ void DreamMasterLiteEditor::populateThemes(const juce::var& themes) {
     if (themeIds.indexOf(proc.getDreamShareTheme()) < 0 && !themeIds.isEmpty())
         proc.setDreamShareTheme(themeIds[0]);
     updateThemeButtonLabel();
-    themeButton.setEnabled(authenticated && !themeIds.isEmpty());
+    themeButton.setEnabled(true);
 }
 
 void DreamMasterLiteEditor::updateThemeButtonLabel() {
     const int index = themeIds.indexOf(proc.getDreamShareTheme());
-    themeButton.setButtonText(index >= 0 ? "THEME · " + themeNames[index] : "THEMES");
+    themeButton.setButtonText(index >= 0 ? "THEME: " + themeNames[index] : "THEME: DEFAULT");
 }
 
 void DreamMasterLiteEditor::applyThemePack(const juce::var& themePack) {
@@ -1209,15 +1316,15 @@ void DreamMasterLiteEditor::applyPalette() {
     for (auto* card : effectCards)
         card->setPalette(backgroundColour, panelColour, borderColour, accentColour, highlightColour, textColour);
     for (auto* button : {&randomButton, &definedButton, &websiteButton, &rackPageButton, &builderPageButton,
-                         &themeButton, &chooseEffectButton, &moveUpButton, &moveDownButton, &savePresetButton,
+                         &themeButton, &moveUpButton, &moveDownButton, &savePresetButton,
                          &loadPresetButton, &deletePresetButton})
         styleButton(*button, panelColour, accentColour, highlightColour);
-    styleButton(randomButton, juce::Colour(0xff102b17), accentColour, highlightColour);
+    styleButton(randomButton, panelColour.darker(0.12f), accentColour, highlightColour);
     styleButton(extremeButton, juce::Colour(0xff241018), juce::Colour(0xffff7272), juce::Colour(0xffffb047));
     styleButton(resetButton, juce::Colour(0xff20130e), textColour, highlightColour);
-    styleButton(addEffectButton, juce::Colour(0xff102b17), accentColour, highlightColour);
+    styleButton(addEffectButton, panelColour.darker(0.12f), accentColour, highlightColour);
     styleButton(removeEffectButton, juce::Colour(0xff291410), juce::Colour(0xffff9b83), juce::Colour(0xffffc0a8));
-    styleButton(loginSubmitButton, juce::Colour(0xff102b17), accentColour, highlightColour);
+    styleButton(loginSubmitButton, panelColour.darker(0.12f), accentColour, highlightColour);
     styleButton(loginCancelButton, panelColour, mutedColour, highlightColour);
     for (auto* button : categoryButtons)
         button->setColour(juce::TextButton::buttonColourId, panelColour);
@@ -1228,6 +1335,7 @@ void DreamMasterLiteEditor::applyPalette() {
     }
     loginTitle.setColour(juce::Label::textColourId, accentColour);
     loginStatusLabel.setColour(juce::Label::textColourId, mutedColour);
+    loginOverlay->setPalette(panelColour, borderColour, accentColour);
     builderAmountSlider.setColour(juce::Slider::trackColourId, accentColour);
     builderAmountSlider.setColour(juce::Slider::thumbColourId, highlightColour);
     chainList.setColour(juce::ListBox::backgroundColourId, panelColour);
@@ -1262,7 +1370,7 @@ void DreamMasterLiteEditor::selectTheme(int selectedIndex) {
     request->setProperty("theme", theme);
     const juce::var body(request.get());
     const auto previousTheme = proc.getDreamShareTheme();
-    accountLabel.setText("CHANGING THEME…", juce::dontSendNotification);
+    accountLabel.setText("CHANGING THEME...", juce::dontSendNotification);
     juce::Component::SafePointer<DreamMasterLiteEditor> safeThis(this);
     requestWorkerAsync(&body, false, [safeThis, previousTheme](WorkerReply reply) {
         if (safeThis == nullptr)
@@ -1272,7 +1380,7 @@ void DreamMasterLiteEditor::selectTheme(int selectedIndex) {
                                            juce::dontSendNotification);
             const int previous = safeThis->themeIds.indexOf(previousTheme);
             if (previous >= 0)
-                safeThis->themeButton.setButtonText("THEME · " + safeThis->themeNames[previous]);
+                safeThis->themeButton.setButtonText("THEME: " + safeThis->themeNames[previous]);
             return;
         }
         auto* response = reply.payload.getDynamicObject();

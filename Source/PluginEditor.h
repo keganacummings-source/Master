@@ -24,30 +24,37 @@ public:
 
 private:
     class EffectCard;
+    class EffectBrowserModel;
     struct BuilderStep {
         int effectIndex = 0;
         float amount = 0.22f;
     };
     DreamMasterLiteProcessor& proc;
     juce::Viewport viewport;
-    juce::Component content, builderContent, loginOverlay;
+    juce::Component content, builderContent;
+    class LoginOverlay;
+    std::unique_ptr<LoginOverlay> loginOverlay;
     juce::OwnedArray<EffectCard> effectCards;
     juce::OwnedArray<juce::TextButton> categoryButtons;
+    juce::ListBox effectBrowserList;
     juce::TextButton randomButton{"RANDOM FX"}, extremeButton{"XTRMRND"}, definedButton{"RANDOM VALUES"};
     juce::TextButton resetButton{"ALL OFF"}, websiteButton{"DREAMDAW.COM"};
     juce::TextButton rackPageButton{"FX RACK"}, builderPageButton{"FX BUILDER"};
     juce::TextButton loginButton{"LOG IN"}, logoutButton{"LOG OUT"}, themeButton{"THEMES"};
-    juce::TextButton chooseEffectButton{"BROWSE EFFECTS"}, addEffectButton{"ADD TO CHAIN"};
+    juce::TextButton addEffectButton{"ADD TO CHAIN"};
     juce::TextButton moveUpButton{"UP"}, moveDownButton{"DOWN"}, removeEffectButton{"REMOVE"};
     juce::TextButton savePresetButton{"SAVE CHAIN"}, loadPresetButton{"LOAD"}, deletePresetButton{"DELETE"};
     juce::TextButton loginSubmitButton{"SIGN IN"}, loginCancelButton{"NOT NOW"};
     juce::Label title, subtitle, countLabel, onlineLabel, accountLabel, builderLockLabel, builderStatusLabel;
     juce::Label loginTitle, loginStatusLabel;
+    juce::Label effectBrowserHeading, chainHeading, chosenEffectLabel;
     juce::TextEditor usernameEditor, passwordEditor, presetNameEditor, searchEditor;
     juce::Slider builderAmountSlider;
     juce::ComboBox presetChoiceBox;
     juce::ListBox chainList{"Builder chain", this};
+    std::unique_ptr<EffectBrowserModel> effectBrowserModel;
     std::vector<int> visibleEffects;
+    std::vector<int> builderBrowserEffects;
     std::vector<BuilderStep> builderSteps;
     std::vector<dm::CustomPreset> availablePresets;
     juce::StringArray themeIds, themeNames;
@@ -66,6 +73,7 @@ private:
     bool loginOverlayDismissed = false;
     int selectedCategory = -1;
     int selectedBuilderEffect = 0;
+    float pendingBuilderAmount = 0.22f;
     juce::uint32 lastCountUpdateMs = 0;
     juce::uint32 lastHeartbeatMs = 0;
     juce::uint32 lastOnlinePollMs = 0;
@@ -83,7 +91,6 @@ private:
     void updateActiveCount();
     void updatePresetList();
     void addBuilderEffect();
-    void showEffectBrowserMenu();
     void saveBuilderPreset();
     void loadSelectedPreset();
     void deleteSelectedPreset();
@@ -108,6 +115,8 @@ private:
     void setCategory(int category);
     void updateCategoryButtons();
     void updateBuilderChainList();
+    void updateEffectBrowserList();
+    void selectBuilderBrowserRow(int row);
     void updateLoginPreference(bool dismissed);
     bool readLoginPreference() const;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DreamMasterLiteEditor)
