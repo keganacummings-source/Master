@@ -28,7 +28,8 @@ public:
     void reset();
     void process(float* left, float* right, int channels, int samples,
                  const std::array<bool, effectCount>& enabled,
-                 const std::array<float, effectCount>& amounts);
+                 const std::array<float, effectCount>& amounts,
+                 const std::array<int, effectCount>* effectOrder = nullptr);
 
 private:
     struct EffectState {

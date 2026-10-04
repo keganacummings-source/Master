@@ -2,7 +2,11 @@
 
 The rack uses 200 unique effect IDs and display names based on the supplied INSOMNIA.html FX_DEFS list. No native IDs or display names are duplicated. Each effect has an enable control and an amount control, with host automation and saved state. Existing host parameter IDs (`fx0`–`fx199` and `amt0`–`amt199`) are preserved.
 
-The Random FX Pick button first disables all effects, then enables a random set of 1–10 distinct effects. It therefore cannot leave more than 10 effects enabled after a random pick. All Off disables the entire rack.
+The category dropdown filters all 200 modules by effect type without changing their stable indices. `RANDOM FX` clears the rack, enables 1–10 distinct modules, and randomizes selected amounts. `XTRMRND` does the same for 10–20 modules, inclusive. `DEFINED VALUES` uses the documented stable per-effect amount mapping instead of random amount values. All Off disables the entire rack.
+
+The FX Builder is gated by an authenticated DreamShare `plugin_capabilities` response with `fxBuilder: true`. It supports module selection, amount editing, chain ordering, and named preset save/load/delete. Custom preset IDs, effect IDs, amounts, labels, and active chain order are stored inside APVTS plugin state, not in external files; host `fxN`/`amtN` parameters and automation IDs are unchanged. HTTPS login, session validation, theme selection, online-count polling, and presence heartbeat requests originate only from the UI thread. Passwords and auth tokens are never serialized; the token is held in memory for the active plugin instance.
+
+All 16 themes in the Worker catalog are listed for authenticated users. The native UI applies relevant color values from the theme pack's `vars` object, and ignores web-only file/scene/veil fields.
 
 Every slot is explicitly assigned a native DSP recipe; there is no substring classifier or hash-derived routing. The recipes reuse stable processing primitives (filters, saturation, dynamics, modulated delay, all-pass phasing, feedback delay, reverb combs, stereo imaging, and rhythmic gating) with deliberately varied timing, tone, depth, and response. Enable/amount ramps, bounded feedback, DC blocking, finite-value guards, and a linked sample-peak limiter improve behavior with arbitrary or stacked inputs. The limiter is not a true-peak limiter or loudness mastering processor.
 
