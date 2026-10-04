@@ -35,8 +35,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout DreamMasterLiteProcessor::cr
     juce::AudioProcessorValueTreeState::ParameterLayout params;
     for (int i = 0; i < 200; ++i) {
         const auto idx = juce::String(i);
-        params.add(std::make_unique<juce::AudioParameterBool>("fx" + idx, juce::String(dm::featureNames[(size_t)i].data()), false));
-        params.add(std::make_unique<juce::AudioParameterFloat>("amt" + idx, juce::String(dm::featureNames[(size_t)i].data()) + " Amount", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.22f));
+        const auto name = juce::String(dm::featureNames[(size_t)i].data());
+        params.add(std::make_unique<juce::AudioParameterBool>("fx" + idx, name, false));
+        params.add(std::make_unique<juce::AudioParameterFloat>("amt" + idx, name + " Amount", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.22f));
+        params.add(std::make_unique<juce::AudioParameterFloat>("ctrl2" + idx, name + " Control 2", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.50f));
+        params.add(std::make_unique<juce::AudioParameterFloat>("ctrl3" + idx, name + " Control 3", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.50f));
     }
     return params;
 }
@@ -45,7 +48,8 @@ void DreamMasterLiteProcessor::prepareToPlay(double sampleRate, int) {
     currentSampleRate = sampleRate > 1000.0 ? sampleRate : 44100.0;
     filterState = {}; previousState = {}; delayPositions = {};
     for (int i = 0; i < 200; ++i) {
-        const auto id = std::string(dm::featureIds[(size_t)i].data(), dm::featureIds[(size_t)i].size());
+        const auto featureId = dm::featureIds[(size_t)i];
+        const auto id = std::string(featureId.data(), featureId.size());
         const auto type = classify(id);
         if (type == FxType::Delay) delayBuffers[(size_t)i].assign((size_t)juce::jlimit(2048, 24000, (int)(currentSampleRate * 0.24)), {0.0f, 0.0f});
         else delayBuffers[(size_t)i].clear();
@@ -66,70 +70,92 @@ void DreamMasterLiteProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     for (int i = 0; i < 200; ++i) {
         auto* enabled = state.getRawParameterValue("fx" + juce::String(i));
         auto* amountParam = state.getRawParameterValue("amt" + juce::String(i));
-        if (enabled == nullptr || amountParam == nullptr || enabled->load() < 0.5f) continue;
+        auto* control2Param = state.getRawParameterValue("ctrl2" + juce::String(i));
+        auto* control3Param = state.getRawParameterValue("ctrl3" + juce::String(i));
+        if (enabled == nullptr || amountParam == nullptr || control2Param == nullptr || control3Param == nullptr || enabled->load() < 0.5f) continue;
         const float amount = juce::jlimit(0.0f, 1.0f, amountParam->load());
-        const auto id = std::string(dm::featureIds[(size_t)i].data(), dm::featureIds[(size_t)i].size());
+        const float control2 = juce::jlimit(0.0f, 1.0f, control2Param->load());
+        const float control3 = juce::jlimit(0.0f, 1.0f, control3Param->load());
+        const auto featureId = dm::featureIds[(size_t)i];
+        const auto id = std::string(featureId.data(), featureId.size());
         const FxType type = classify(id);
         const float unique = float((std::hash<std::string>{}(id) % 97) + 3) / 100.0f;
         auto& st = filterState[(size_t)i];
         auto& prev = previousState[(size_t)i];
         auto& ring = delayBuffers[(size_t)i];
-        const float cutoff = 0.006f + amount * (0.06f + unique * 0.08f);
+        const float cutoff = 0.001f + control2 * 0.22f;
         for (int s = 0; s < samples; ++s) {
             float l = buffer.getSample(0, s);
             float r = channels > 1 ? buffer.getSample(1, s) : l;
             const float inL = l, inR = r;
             switch (type) {
-                case FxType::Gain: { const float g = 1.0f + (amount - 0.22f) * 0.7f; l *= g; r *= g; break; }
-                case FxType::LowPass:
-                    st[0] += cutoff * (l - st[0]); st[1] += cutoff * (r - st[1]); l = l * (1.0f - amount * 0.55f) + st[0] * amount * 0.55f; r = r * (1.0f - amount * 0.55f) + st[1] * amount * 0.55f; break;
+                case FxType::Gain: { const float g = 1.0f + (amount - 0.22f) * 0.7f; const float trim = 0.75f + control2 * 0.5f; l *= g * trim; r *= g * trim; break; }
+                case FxType::LowPass: {
+                    st[0] += cutoff * (l - st[0]); st[1] += cutoff * (r - st[1]);
+                    const float resonance = control3 * 0.12f;
+                    l = l * (1.0f - amount * 0.75f) + st[0] * amount * 0.75f + (l - st[0]) * resonance;
+                    r = r * (1.0f - amount * 0.75f) + st[1] * amount * 0.75f + (r - st[1]) * resonance;
+                    break;
+                }
                 case FxType::HighPass:
-                    st[0] += cutoff * (l - st[0]); st[1] += cutoff * (r - st[1]); l -= st[0] * amount * 0.6f; r -= st[1] * amount * 0.6f; break;
+                    st[0] += cutoff * (l - st[0]); st[1] += cutoff * (r - st[1]); l -= st[0] * amount * (0.2f + control3 * 0.65f); r -= st[1] * amount * (0.2f + control3 * 0.65f); break;
                 case FxType::Air: {
                     st[0] += 0.22f * (l - st[0]); st[1] += 0.22f * (r - st[1]);
-                    l += (l - st[0]) * amount * (0.08f + unique * 0.12f); r += (r - st[1]) * amount * (0.08f + unique * 0.12f); break;
+                    const float tone = 0.04f + control2 * 0.35f; l += (l - st[0]) * amount * tone * (0.4f + control3); r += (r - st[1]) * amount * tone * (0.4f + control3); break;
                 }
-                case FxType::Bass:
+                case FxType::Bass: {
                     st[0] += 0.025f * (l - st[0]); st[1] += 0.025f * (r - st[1]);
-                    l += st[0] * amount * 0.45f; r += st[1] * amount * 0.45f; break;
+                    const float bassAmount = amount * (0.15f + control3 * 0.55f);
+                    l += st[0] * bassAmount; r += st[1] * bassAmount;
+                    break;
+                }
                 case FxType::Saturation: {
-                    const float drive = 1.0f + amount * (1.5f + unique * 3.0f);
+                    const float drive = 1.0f + amount * (1.0f + control2 * 7.0f);
                     const float norm = std::tanh(drive);
-                    l = (1.0f - amount * 0.3f) * l + amount * 0.3f * (std::tanh(l * drive) / norm);
-                    r = (1.0f - amount * 0.3f) * r + amount * 0.3f * (std::tanh(r * drive) / norm); break;
+                    const float mix = control3 * 0.65f;
+                    l = (1.0f - mix) * l + mix * (std::tanh(l * drive) / norm);
+                    r = (1.0f - mix) * r + mix * (std::tanh(r * drive) / norm); break;
                 }
                 case FxType::Limiter: {
-                    const float threshold = 0.96f - amount * 0.22f;
-                    l = std::tanh(l / threshold) * threshold; r = std::tanh(r / threshold) * threshold; break;
+                    const float threshold = 0.99f - amount * (0.04f + control2 * 0.42f);
+                    const float limitedL = std::tanh(l / threshold) * threshold, limitedR = std::tanh(r / threshold) * threshold;
+                    l = l * (1.0f - control3) + limitedL * control3; r = r * (1.0f - control3) + limitedR * control3; break;
                 }
                 case FxType::Delay: {
                     if (!ring.empty()) {
                         const size_t p = delayPositions[(size_t)i];
-                        const size_t lag = (size_t)juce::jlimit(1, (int)ring.size() - 1, (int)(ring.size() * (0.12f + unique * 0.42f)));
+                        const size_t lag = (size_t)juce::jlimit(1, (int)ring.size() - 1, (int)(ring.size() * (0.02f + control2 * 0.70f)));
                         const size_t rp = (p + ring.size() - lag) % ring.size();
                         const float dl = ring[rp][0], dr = ring[rp][1];
-                        ring[p] = {inL + dl * amount * 0.25f, inR + dr * amount * 0.25f};
+                        ring[p] = {inL + dl * control3 * 0.65f, inR + dr * control3 * 0.65f};
                         delayPositions[(size_t)i] = (p + 1) % ring.size();
-                        l = inL * (1.0f - amount * 0.22f) + dl * amount * 0.22f;
-                        r = inR * (1.0f - amount * 0.22f) + dr * amount * 0.22f;
+                        const float mix = amount * 0.7f;
+                        l = inL * (1.0f - mix) + dl * mix;
+                        r = inR * (1.0f - mix) + dr * mix;
                     } break;
                 }
                 case FxType::Width: {
-                    const float mid = (l + r) * 0.5f, side = (l - r) * 0.5f * (1.0f + amount * (0.8f + unique * 0.4f));
-                    l = mid + side; r = mid - side; break;
+                    const float mid = (l + r) * 0.5f, side = (l - r) * 0.5f * (0.25f + control2 * 2.0f);
+                    const float widenedL = mid + side, widenedR = mid - side;
+                    l = l * (1.0f - amount * control3) + widenedL * amount * control3; r = r * (1.0f - amount * control3) + widenedR * amount * control3; break;
                 }
                 case FxType::Modulation: {
-                    const float mod = 1.0f - amount * (0.08f + unique * 0.15f) * (0.5f + 0.5f * std::sin(float(s) * 0.035f + unique * 6.28f));
+                    const float phase = float(s) * (0.002f + control2 * 0.12f) + unique * 6.28f;
+                    const float mod = 1.0f - amount * control3 * 0.45f * (0.5f + 0.5f * std::sin(phase));
                     l *= mod; r *= mod; break;
                 }
                 case FxType::LoFi: {
-                    const float steps = 16.0f + (1.0f - amount) * 240.0f;
-                    l = std::round(l * steps) / steps; r = std::round(r * steps) / steps; break;
+                    const float bits = 4.0f + control2 * 12.0f;
+                    const float steps = std::pow(2.0f, bits);
+                    const float mix = amount * control3;
+                    l = l * (1.0f - mix) + (std::round(l * steps) / steps) * mix; r = r * (1.0f - mix) + (std::round(r * steps) / steps) * mix; break;
                 }
                 case FxType::Gate: {
-                    const float threshold = 0.004f + amount * 0.055f;
-                    if (std::abs(l) < threshold) l *= 1.0f - amount * 0.8f;
-                    if (std::abs(r) < threshold) r *= 1.0f - amount * 0.8f; break;
+                    const float threshold = 0.001f + control2 * 0.08f;
+                    const float attenuation = 1.0f - amount * control3 * 0.95f;
+                    if (std::abs(l) < threshold) l *= attenuation;
+                    if (std::abs(r) < threshold) r *= attenuation;
+                    break;
                 }
                 case FxType::Tilt: {
                     st[0] += 0.015f * (l - st[0]); st[1] += 0.015f * (r - st[1]);
@@ -138,9 +164,11 @@ void DreamMasterLiteProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
                 case FxType::Color:
                 default: {
                     st[0] += cutoff * (l - st[0]); st[1] += cutoff * (r - st[1]);
-                    const float blend = amount * (0.08f + unique * 0.12f);
-                    l = l * (1.0f - blend) + std::tanh(st[0] * (1.0f + unique * 2.0f)) * blend;
-                    r = r * (1.0f - blend) + std::tanh(st[1] * (1.0f + unique * 2.0f)) * blend; break;
+                    const float toneCutoff = 0.002f + control2 * 0.20f;
+                    st[0] += toneCutoff * (l - st[0]); st[1] += toneCutoff * (r - st[1]);
+                    const float blend = amount * control3 * 0.35f;
+                    l = l * (1.0f - blend) + std::tanh(st[0] * (1.0f + amount * 2.0f)) * blend;
+                    r = r * (1.0f - blend) + std::tanh(st[1] * (1.0f + amount * 2.0f)) * blend; break;
                 }
             }
             // Conservative per-stage guard prevents runaway peaks when several effects are stacked.
