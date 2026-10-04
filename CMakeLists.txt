@@ -18,5 +18,6 @@ target_link_libraries(DreamMasterLite PRIVATE juce::juce_audio_utils PUBLIC juce
 if(BUILD_TESTING)
  add_executable(DreamMasterDSPTests Tests/DspEngineTests.cpp Source/DspEngine.cpp)
  target_include_directories(DreamMasterDSPTests PRIVATE Source)
+ target_link_libraries(DreamMasterDSPTests PRIVATE juce::juce_data_structures)
  add_test(NAME DreamMasterDSPTests COMMAND DreamMasterDSPTests)
 endif()

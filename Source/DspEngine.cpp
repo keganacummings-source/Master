@@ -498,7 +498,8 @@ float DspEngine::processEffect(Kind kind, EffectState& st, int index, float amou
 
 void DspEngine::process(float* left, float* right, int channels, int samples,
                         const std::array<bool, effectCount>& enabled,
-                        const std::array<float, effectCount>& amounts) {
+                        const std::array<float, effectCount>& amounts,
+                        const std::array<int, effectCount>* effectOrder) {
     if (left == nullptr || channels < 1 || samples <= 0)
         return;
     const bool stereo = channels > 1 && right != nullptr;
@@ -511,7 +512,10 @@ void DspEngine::process(float* left, float* right, int channels, int samples,
         float l = sanitize(left[sample]);
         float r = stereo ? sanitize(right[sample]) : l;
 
-        for (int i = 0; i < effectCount; ++i) {
+        for (int orderIndex = 0; orderIndex < effectCount; ++orderIndex) {
+            const int i = effectOrder != nullptr ? (*effectOrder)[static_cast<size_t>(orderIndex)] : orderIndex;
+            if (i < 0 || i >= effectCount)
+                continue;
             auto& state = states[static_cast<size_t>(i)];
             const float targetMix = enabled[static_cast<size_t>(i)] ? 1.0f : 0.0f;
             state.mix += (targetMix - state.mix) * mixCoefficient;

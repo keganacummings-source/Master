@@ -1,5 +1,7 @@
 #include "DspEngine.h"
 #include "FeatureNames.h"
+#include "Randomizer.h"
+#include "CustomPresetState.h"
 
 #include <algorithm>
 #include <array>
@@ -10,6 +12,7 @@
 #include <limits>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -225,6 +228,73 @@ void testSafetyAndMono() {
                     "full-stack stereo impulse safety failure");
     }
 }
+
+void testRandomizersAndCategories() {
+    const auto repeatedA = dm::randomEffectSelection(0x13579bdu, 10, 20);
+    const auto repeatedB = dm::randomEffectSelection(0x13579bdu, 10, 20);
+    require(repeatedA == repeatedB, "random effect selection was not reproducible for a fixed seed");
+
+    bool sawTen = false;
+    bool sawTwenty = false;
+    for (uint32_t seed = 0; seed < 3000; ++seed) {
+        for (const auto bounds : {std::pair<int, int>{1, 10}, std::pair<int, int>{10, 20}}) {
+            const auto selected = dm::randomEffectSelection(seed, bounds.first, bounds.second);
+            require(static_cast<int>(selected.size()) >= bounds.first
+                    && static_cast<int>(selected.size()) <= bounds.second,
+                    "randomizer count fell outside its inclusive bounds");
+            auto unique = selected;
+            std::sort(unique.begin(), unique.end());
+            require(std::adjacent_find(unique.begin(), unique.end()) == unique.end(),
+                    "randomizer selected the same effect more than once");
+            if (bounds.first == 10) {
+                sawTen = sawTen || selected.size() == 10;
+                sawTwenty = sawTwenty || selected.size() == 20;
+            }
+        }
+    }
+    require(sawTen && sawTwenty, "XTRMRND did not reach both inclusive endpoints");
+
+    for (int i = 0; i < dm::DspEngine::effectCount; ++i) {
+        const auto value = dm::definedRandomAmount(i);
+        require(std::isfinite(value) && value >= 0.15f && value <= 0.85f,
+                "defined random amount fell outside its documented range");
+        require(value == dm::definedRandomAmount(i), "defined random amount was not stable");
+        const int category = dm::effectCategoryIndex(i);
+        require(category >= 0 && category < static_cast<int>(dm::effectCategories.size()),
+                std::string(dm::featureNames[static_cast<size_t>(i)]) + " has no category");
+    }
+    for (int category = 0; category < static_cast<int>(dm::effectCategories.size()); ++category) {
+        bool populated = false;
+        for (int i = 0; i < dm::DspEngine::effectCount; ++i)
+            populated = populated || dm::effectCategoryIndex(i) == category;
+        require(populated, std::string(dm::effectCategories[static_cast<size_t>(category)]) + " is empty");
+    }
+}
+
+void testCustomPresetStateRoundTrip() {
+    dm::CustomPreset preset;
+    preset.id = "saved-chain-1";
+    preset.name = "Night texture";
+    preset.steps = {{"delay", 0.375f}, {"drive", 0.812f}, {"width", 0.25f}};
+
+    juce::ValueTree root("PARAMETERS");
+    root.addChild(dm::createCustomPresetTree(preset), -1, nullptr);
+    const auto xml = root.createXml();
+    require(xml != nullptr, "custom preset state did not serialize to XML");
+    const auto restoredRoot = juce::ValueTree::fromXml(*xml);
+    dm::CustomPreset restored;
+    require(dm::readCustomPresetTree(restoredRoot.getChildWithName("PRESET"), restored),
+            "custom preset state did not parse after XML restore");
+    require(restored.id == preset.id && restored.name == preset.name,
+            "custom preset ID or name did not survive state restore");
+    require(restored.steps.size() == preset.steps.size(), "custom preset chain length did not survive restore");
+    for (size_t i = 0; i < preset.steps.size(); ++i) {
+        require(restored.steps[i].effectId == preset.steps[i].effectId,
+                "custom preset effect ID or order did not survive restore");
+        require(std::abs(restored.steps[i].amount - preset.steps[i].amount) < 1.0e-6f,
+                "custom preset amount did not survive restore");
+    }
+}
 }
 
 int main() {
@@ -234,6 +304,8 @@ int main() {
     testStutterLoop();
     testTremoloDepth();
     testSafetyAndMono();
-    std::cout << "Validated 200 unique effects, targeted modulation, finite output, mono/stereo operation, and safety ceiling.\n";
+    testRandomizersAndCategories();
+    testCustomPresetStateRoundTrip();
+    std::cout << "Validated 200 unique effects, randomizer bounds, effect categories, custom-preset state round trips, DSP behavior, mono/stereo operation, and safety ceiling.\n";
     return 0;
 }
