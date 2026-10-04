@@ -4,17 +4,46 @@
 #include <random>
 
 namespace {
-const juce::Colour bg(0xff030805), panel(0xff100a08), acid(0xffc8ff33), green(0xff65ff83), text(0xffd8ffe0), dim(0xffb5a18a), border(0xff563526);
+const juce::Colour bg(0xff030805), panel(0xff0b120d), acid(0xffc8ff33), green(0xff65ff83), text(0xffd8ffe0), dim(0xffb5a18a), border(0xff69412e);
 void styleButton(juce::TextButton& button, juce::Colour fill = panel, juce::Colour ink = green) {
     button.setColour(juce::TextButton::buttonColourId, fill);
     button.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xff153c20));
     button.setColour(juce::TextButton::textColourOffId, ink);
     button.setColour(juce::TextButton::textColourOnId, acid);
 }
+class EffectCard final : public juce::Component {
+public:
+    void paint(juce::Graphics& g) override {
+        auto b = getLocalBounds().toFloat();
+        g.setColour(panel.withAlpha(0.96f)); g.fillRoundedRectangle(b, 3.0f);
+        g.setColour(border); g.drawRoundedRectangle(b.reduced(0.5f), 3.0f, 1.0f);
+        g.setColour(green.withAlpha(0.12f)); g.drawLine(7.0f, 25.0f, b.getWidth()-7.0f, 25.0f, 1.0f);
+    }
+};
+void getControlNames(const std::string& id, juce::String& a, juce::String& b, juce::String& c) {
+    auto has = [&](const char* s) { return id.find(s) != std::string::npos; };
+    if (has("delay") || has("echo") || has("slap") || has("predelay") || has("reverb") || has("room") || has("hall") || has("plate") || has("halo") || has("ripple") || has("orbit") || has("seance") || has("choir") || has("comb")) { a="Mix"; b="Time"; c="Feedback"; }
+    else if (has("lowpass") || has("lpf") || has("highpass") || has("hpf") || has("haze") || has("fog") || has("notch") || has("mud")) { a="Cutoff"; b="Resonance"; c="Mix"; }
+    else if (has("width") || has("widen") || has("stereo") || has("mono") || has("pan") || has("image")) { a="Width"; b="Center"; c="Mix"; }
+    else if (has("chorus") || has("flanger") || has("phaser") || has("vibrato") || has("trem") || has("pulse") || has("worm") || has("vortex") || has("rotary")) { a="Depth"; b="Rate"; c="Mix"; }
+    else if (has("drive") || has("grit") || has("sat") || has("clip") || has("rot") || has("melt") || has("warm") || has("tape") || has("ink") || has("grind")) { a="Drive"; b="Tone"; c="Mix"; }
+    else if (has("limit") || has("ceiling") || has("loud") || has("glue") || has("compress") || has("polish")) { a="Amount"; b="Threshold"; c="Release"; }
+    else if (has("gate") || has("stutter") || has("chop") || has("duck")) { a="Amount"; b="Rate"; c="Smooth"; }
+    else if (has("grain") || has("crush") || has("lofi") || has("radio") || has("phone") || has("bit")) { a="Amount"; b="Bits"; c="Sample"; }
+    else if (has("air") || has("sheen") || has("sparkle") || has("presence") || has("edge")) { a="Amount"; b="Frequency"; c="Mix"; }
+    else if (has("bass") || has("sub") || has("lowend") || has("body") || has("punch")) { a="Amount"; b="Frequency"; c="Mix"; }
+    else { a="Amount"; b="Character"; c="Mix"; }
+}
 }
 
 DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor)
     : AudioProcessorEditor(processor), proc(processor) {
+    juce::PropertiesFile::Options options;
+    options.applicationName = "DreamMasterLite"; options.filenameSuffix = "settings";
+    options.folderName = "Dreamdaw"; options.osxLibrarySubFolder = "Application Support";
+    options.commonToAllUsers = false; options.ignoreCaseOfKeyNames = true;
+    favoritesFile = std::make_unique<juce::PropertiesFile>(options);
+
     title.setText("DREAMMASTERLITE", juce::dontSendNotification);
     title.setFont(juce::Font(27.0f, juce::Font::bold)); title.setColour(juce::Label::textColourId, green);
     title.setJustificationType(juce::Justification::centred); addAndMakeVisible(title);
@@ -27,10 +56,13 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
     for (auto* b : { &randomButton, &resetButton, &websiteButton }) addAndMakeVisible(*b);
     randomButton.onClick = [this] { randomize(); }; resetButton.onClick = [this] { resetAll(); };
     websiteButton.onClick = [] { juce::URL("https://dreamdaw.com").launchInDefaultBrowser(); };
-    viewport.setViewedComponent(&content, false); viewport.setScrollBarsShown(true, true);
+    viewport.setViewedComponent(&content, false); viewport.setScrollBarsShown(true, false);
+    viewport.setScrollOnDragEnabled(false);
     viewport.setColour(juce::ScrollBar::thumbColourId, green.withAlpha(0.8f)); viewport.setColour(juce::ScrollBar::trackColourId, juce::Colour(0xff061009)); addAndMakeVisible(viewport);
+
     for (int i = 0; i < 200; ++i) {
-        const auto name = juce::String(dm::featureNames[(size_t)i]);
+        auto* card = effectCards.add(new EffectCard()); content.addAndMakeVisible(card);
+        const auto name = juce::String::fromUTF8(dm::featureNames[(size_t)i].data(), static_cast<int>(dm::featureNames[(size_t)i].size()));
         auto* label = effectLabels.add(new juce::Label({}, name));
         label->setColour(juce::Label::textColourId, text); label->setFont(juce::Font(12.0f, juce::Font::bold));
         label->setJustificationType(juce::Justification::centredLeft); content.addAndMakeVisible(label);
@@ -38,15 +70,33 @@ DreamMasterLiteEditor::DreamMasterLiteEditor(DreamMasterLiteProcessor& processor
         button->setClickingTogglesState(true); button->setColour(juce::ToggleButton::textColourId, green);
         button->setColour(juce::ToggleButton::tickColourId, acid); content.addAndMakeVisible(button);
         buttonAttachments.add(new juce::AudioProcessorValueTreeState::ButtonAttachment(proc.state, "fx" + juce::String(i), *button));
-        auto* slider = amountSliders.add(new juce::Slider(juce::Slider::LinearHorizontal, juce::Slider::NoTextBox));
-        slider->setRange(0.0, 1.0, 0.001); slider->setValue(0.22, juce::dontSendNotification);
-        slider->setColour(juce::Slider::trackColourId, green); slider->setColour(juce::Slider::thumbColourId, acid);
-        slider->setColour(juce::Slider::backgroundColourId, juce::Colour(0xff484848)); content.addAndMakeVisible(slider);
-        sliderAttachments.add(new juce::AudioProcessorValueTreeState::SliderAttachment(proc.state, "amt" + juce::String(i), *slider));
+        auto* favorite = favoriteButtons.add(new juce::ToggleButton("☆"));
+        favorite->setClickingTogglesState(true); favorite->setColour(juce::ToggleButton::textColourId, acid);
+        favorite->setTooltip("Favorite this effect. Favorites persist across plugin instances on this computer.");
+        const bool isFav = favoritesFile->getBoolValue("favorite_" + juce::String(i), false);
+        favorite->setToggleState(isFav, juce::dontSendNotification); favorite->setButtonText(isFav ? "★" : "☆");
+        favorite->onClick = [this, favorite, i] { const bool on = favorite->getToggleState(); favorite->setButtonText(on ? "★" : "☆"); saveFavorite(i, on); };
+        content.addAndMakeVisible(favorite);
+
+        juce::String c1, c2, c3; getControlNames(std::string(dm::featureIds[(size_t)i]), c1, c2, c3);
+        auto makeLabel = [&](juce::OwnedArray<juce::Label>& collection, const juce::String& t) {
+            auto* l = collection.add(new juce::Label({}, t)); l->setColour(juce::Label::textColourId, dim); l->setFont(juce::Font(9.0f)); l->setJustificationType(juce::Justification::centredLeft); content.addAndMakeVisible(l); return l;
+        };
+        makeLabel(control1Labels, c1); makeLabel(control2Labels, c2); makeLabel(control3Labels, c3);
+        auto makeSlider = [&](juce::OwnedArray<juce::Slider>& collection, const juce::String& param) {
+            auto* s = collection.add(new juce::Slider(juce::Slider::LinearHorizontal, juce::Slider::NoTextBox));
+            s->setRange(0.0, 1.0, 0.001); s->setColour(juce::Slider::trackColourId, green); s->setColour(juce::Slider::thumbColourId, acid);
+            s->setColour(juce::Slider::backgroundColourId, juce::Colour(0xff484848));
+            // Critical: scrolling the viewport over a control must never alter its value.
+            s->setScrollWheelEnabled(false); content.addAndMakeVisible(s);
+            sliderAttachments.add(new juce::AudioProcessorValueTreeState::SliderAttachment(proc.state, param + juce::String(i), *s)); return s;
+        };
+        makeSlider(amountSliders, "amt"); makeSlider(control2Sliders, "ctrl2"); makeSlider(control3Sliders, "ctrl3");
     }
-    setResizable(true, true); setResizeLimits(650, 520, 1500, 1100); setSize(1040, 800);
+    setResizable(true, true); setResizeLimits(650, 520, 1600, 1200); setSize(1080, 820);
 }
-DreamMasterLiteEditor::~DreamMasterLiteEditor() { viewport.setViewedComponent(nullptr, false); }
+DreamMasterLiteEditor::~DreamMasterLiteEditor() { viewport.setViewedComponent(nullptr, false); if (favoritesFile) favoritesFile->save(); }
+void DreamMasterLiteEditor::saveFavorite(int index, bool enabled) { if (favoritesFile) { favoritesFile->setValue("favorite_" + juce::String(index), enabled); favoritesFile->saveIfNeeded(); } }
 
 void DreamMasterLiteEditor::paint(juce::Graphics& g) {
     g.fillAll(bg); auto bounds = getLocalBounds().toFloat();
@@ -67,19 +117,22 @@ void DreamMasterLiteEditor::paint(juce::Graphics& g) {
 void DreamMasterLiteEditor::resized() {
     auto r = getLocalBounds().reduced(10); title.setBounds(r.removeFromTop(36)); subtitle.setBounds(r.removeFromTop(20)); auto top = r.removeFromTop(34);
     randomButton.setBounds(top.removeFromLeft(205).reduced(2)); resetButton.setBounds(top.removeFromLeft(85).reduced(2)); websiteButton.setBounds(top.removeFromLeft(145).reduced(2)); countLabel.setBounds(top.reduced(5, 2)); viewport.setBounds(r);
-    const int columns = getWidth() >= 1050 ? 4 : 3, gap = 8, rowHeight = 66;
-    const int cardWidth = juce::jmax(150, (r.getWidth() - gap * (columns - 1)) / columns);
-    const int rows = (200 + columns - 1) / columns; content.setSize(columns * cardWidth + (columns - 1) * gap, rows * (rowHeight + gap));
+    const int columns = getWidth() >= 1050 ? 4 : 3, gap = 9, cardHeight = 116;
+    const int cardWidth = juce::jmax(174, (r.getWidth() - gap * (columns - 1)) / columns);
+    const int rows = (200 + columns - 1) / columns; content.setSize(columns * cardWidth + (columns - 1) * gap, rows * (cardHeight + gap));
     for (int i = 0; i < 200; ++i) {
-        const int col = i % columns, row = i / columns, x = col * (cardWidth + gap), y = row * (rowHeight + gap);
-        effectLabels[i]->setBounds(x + 7, y + 4, cardWidth - 57, 20);
-        effectButtons[i]->setBounds(x + cardWidth - 48, y + 2, 44, 22);
-        amountSliders[i]->setBounds(x + 8, y + 30, cardWidth - 16, 25);
+        const int col = i % columns, row = i / columns, x = col * (cardWidth + gap), y = row * (cardHeight + gap);
+        effectCards[i]->setBounds(x, y, cardWidth, cardHeight);
+        effectLabels[i]->setBounds(x + 7, y + 3, cardWidth - 110, 22);
+        effectButtons[i]->setBounds(x + cardWidth - 88, y + 2, 48, 21);
+        favoriteButtons[i]->setBounds(x + cardWidth - 38, y + 2, 32, 21);
+        const int labelWidth = 58, sliderWidth = cardWidth - labelWidth - 18;
+        control1Labels[i]->setBounds(x + 8, y + 29, labelWidth, 20); amountSliders[i]->setBounds(x + labelWidth + 8, y + 28, sliderWidth, 20);
+        control2Labels[i]->setBounds(x + 8, y + 54, labelWidth, 20); control2Sliders[i]->setBounds(x + labelWidth + 8, y + 53, sliderWidth, 20);
+        control3Labels[i]->setBounds(x + 8, y + 79, labelWidth, 20); control3Sliders[i]->setBounds(x + labelWidth + 8, y + 78, sliderWidth, 20);
     }
 }
-
 void DreamMasterLiteEditor::randomize() {
-    // Pick 1–10 distinct modules; clear the rest so this button can never enable more than ten.
     juce::Random rng; std::vector<int> indices(200); for (int i = 0; i < 200; ++i) indices[(size_t)i] = i;
     for (int i = 199; i > 0; --i) std::swap(indices[(size_t)i], indices[(size_t)rng.nextInt(i + 1)]);
     const int count = 1 + rng.nextInt(10);
