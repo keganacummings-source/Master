@@ -1,20 +1,25 @@
-# DreamMasterLite
+# DreamMasterLite VST3
 
-JUCE 8 VST3 effect-rack project inspired by the supplied INSOMNIA.html.
+A JUCE 8 VST3 effect rack inspired by the supplied INSOMNIA HTML reference, with 200 uniquely named modules, a Matrix-green interface, eye graphics, and a DreamDaw.com link.
 
-## Rack behavior
-- 200 unique effect names and IDs sourced from `INSOMNIA.html` (`FX_DEFS`).
-- Each module has an on/off toggle and an amount slider.
-- `RANDOM FX PICK (MAX 10)` clears the rack and enables a random 1–10 distinct effects only.
-- `ALL OFF` disables every module.
-- Green Matrix styling, glowing eyes, and a DreamDaw.com link are included.
-- Parameter state is saved with the host session and exposed to automation.
-- A conservative output peak ceiling prevents digital overs; this is not a loudness mastering or true-peak limiter.
+## Interface updates
 
-## Build
-Open this project in GitHub and let `.github/workflows/build.yml` run, or configure with CMake and a C++17 compiler. JUCE 8.0.6 is fetched by CMake. The workflow publishes platform build artifacts.
+- Each effect is displayed in its own bordered card.
+- Each card has an enable switch, an ASCII `FAV` toggle, and three parameter controls with family-appropriate labels. Favorited effects move to the top and sort alphabetically by name; other effects keep their original order.
+- Mouse-wheel scrolling over sliders is disabled so scrolling the long rack does not change parameter values.
+- Favorite stars are stored in the user's local DreamMasterLite settings file and persist across separate plugin instances and FL Studio restarts on that computer. They are not intended to sync between computers.
+- Random FX Pick enables a randomly chosen 1–10 distinct effects and clears the other enable switches. All Off disables all effects.
+- Parameter values and enabled states are stored in the DAW's plugin state.
 
-## Important audio note
-The 200 names and module states are distinct. The native engine implements multiple DSP families with per-effect variations, but it is not a verified one-to-one native port of all 200 browser-side Web Audio algorithms. Start with effects disabled, enable only what you need, and use subtle amounts on a master bus. Build and audition in your DAW before relying on it for final delivery.
+## Build with GitHub Actions
 
-Website: https://dreamdaw.com
+1. Upload the contents of this project into your repository, preserving `.github/workflows/build.yml` and `Source/`.
+2. Commit and push to `main` or `master`.
+3. Open the repository's **Actions** tab and select **DreamMasterLite VST3 Build**.
+4. After a successful run, download the platform-specific VST3 artifact from the run's **Artifacts** section.
+
+The workflow builds Windows, macOS, and Linux artifacts. The build must succeed before the plugin can be considered build-verified.
+
+## Audio note
+
+The effect rack currently routes the named modules through shared DSP families (filtering, gain, saturation, limiting, delay, stereo width, modulation, lo-fi, gating, and color shaping). The three controls are mapped to parameters for those families; this is not a one-to-one recreation of all 200 original browser-based effects. Always audition changes at conservative levels, especially on a master bus. The final peak guard is a safety clamp, not a true-peak limiter or loudness mastering processor.
