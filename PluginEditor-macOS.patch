@@ -1,0 +1,6 @@
+*** Begin Patch
+*** Update File: Source/PluginEditor.cpp
+@@
+-            safe->composeTitle.clear(); safe->composeBody.clear(); safe->composeAudioFile={};
++            safe->composeTitle.clear(); safe->composeBody.clear(); safe->composeAudioFile = juce::File();
+*** End Patch
