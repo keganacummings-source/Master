@@ -35,8 +35,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout DreamMasterLiteProcessor::cr
     juce::AudioProcessorValueTreeState::ParameterLayout params;
     for (int i = 0; i < 200; ++i) {
         const auto idx = juce::String(i);
-        params.add(std::make_unique<juce::AudioParameterBool>("fx" + idx, juce::String(dm::featureNames[(size_t)i]), false));
-        params.add(std::make_unique<juce::AudioParameterFloat>("amt" + idx, juce::String(dm::featureNames[(size_t)i]) + " Amount", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.22f));
+        params.add(std::make_unique<juce::AudioParameterBool>("fx" + idx, juce::String::fromUTF8(dm::featureNames[(size_t)i].data(), static_cast<int>(dm::featureNames[(size_t)i].size())), false));
+        params.add(std::make_unique<juce::AudioParameterFloat>("amt" + idx, juce::String::fromUTF8(dm::featureNames[(size_t)i].data(), static_cast<int>(dm::featureNames[(size_t)i].size())) + " Amount", juce::NormalisableRange<float>(0.0f, 1.0f, 0.001f), 0.22f));
     }
     return params;
 }
