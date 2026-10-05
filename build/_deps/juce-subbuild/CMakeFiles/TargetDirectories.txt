@@ -1,0 +1,3 @@
+/tmp/master/Master-keganacummings-source-dreammaster-ui-polish/build/_deps/juce-subbuild/CMakeFiles/juce-populate.dir
+/tmp/master/Master-keganacummings-source-dreammaster-ui-polish/build/_deps/juce-subbuild/CMakeFiles/edit_cache.dir
+/tmp/master/Master-keganacummings-source-dreammaster-ui-polish/build/_deps/juce-subbuild/CMakeFiles/rebuild_cache.dir

@@ -361,9 +361,9 @@ inline constexpr std::array<std::string_view, 200> featureNames = {
     "Wow II",
     "Flutter",
     "16th Gate",
-    "Reverse Bloom",
-    "Oct Down",
-    "Oct Up",
+    "Shimmer Bloom",
+    "Low Ring Mod",
+    "High Ring Mod",
     "Resonant",
     "Smear",
     "Dust",
@@ -406,4 +406,33 @@ inline constexpr std::array<std::string_view, 200> featureNames = {
     "Comb II",
     "Formant II",
 };
+
+inline constexpr std::array<std::string_view, 8> effectCategories = {
+    "Dynamics", "Filter & EQ", "Modulation", "Delay", "Space", "Stereo", "Saturation & Lo-fi", "Texture & Rhythm"
+};
+
+constexpr bool contains(std::string_view value, std::string_view part) {
+    return value.find(part) != std::string_view::npos;
+}
+
+constexpr int effectCategoryIndex(int index) {
+    if (index < 0 || index >= static_cast<int>(featureIds.size()))
+        return -1;
+    const auto id = featureIds[static_cast<size_t>(index)];
+    if (contains(id, "delay") || contains(id, "echo") || contains(id, "slap") || contains(id, "ping") || contains(id, "tap"))
+        return 3;
+    if (contains(id, "reverb") || contains(id, "room") || contains(id, "hall") || contains(id, "plate") || contains(id, "choir") || contains(id, "shimmer"))
+        return 4;
+    if (contains(id, "width") || contains(id, "widen") || contains(id, "mono") || contains(id, "pan") || contains(id, "balance") || contains(id, "image") || contains(id, "stage") || contains(id, "side"))
+        return 5;
+    if (contains(id, "chorus") || contains(id, "flange") || contains(id, "phase") || contains(id, "trem") || contains(id, "vibrato") || contains(id, "swirl") || contains(id, "drift") || contains(id, "rot") || contains(id, "worm") || contains(id, "melt") || contains(id, "orbit") || contains(id, "pulse") || contains(id, "ripple") || contains(id, "vortex") || contains(id, "halo") || contains(id, "flutter") || contains(id, "wow") || contains(id, "ring"))
+        return 2;
+    if (contains(id, "hpf") || contains(id, "lpf") || contains(id, "shelf") || contains(id, "eq") || contains(id, "notch") || contains(id, "bass") || contains(id, "air") || contains(id, "presence") || contains(id, "cut") || contains(id, "tilt") || contains(id, "deess") || contains(id, "telephone") || contains(id, "radio") || contains(id, "under") || contains(id, "formant") || contains(id, "filter") || contains(id, "resonant") || contains(id, "wire"))
+        return 1;
+    if (contains(id, "drive") || contains(id, "grit") || contains(id, "crush") || contains(id, "clip") || contains(id, "sat") || contains(id, "warm") || contains(id, "tape") || contains(id, "vinyl") || contains(id, "acid") || contains(id, "bite") || contains(id, "dust") || contains(id, "cinder") || contains(id, "ember") || contains(id, "velvet") || contains(id, "silk") || contains(id, "cream") || contains(id, "glass") || contains(id, "polish"))
+        return 6;
+    if (contains(id, "comp") || contains(id, "glue") || contains(id, "limiter") || contains(id, "loud") || contains(id, "trim") || contains(id, "fade") || contains(id, "duck") || contains(id, "gain") || contains(id, "punch") || contains(id, "ceiling") || contains(id, "sleep") || contains(id, "clean"))
+        return 0;
+    return 7;
+}
 } // namespace dm

@@ -1,10 +1,16 @@
-# DreamMasterLite effect rack
+# INXOMNIA effect rack
 
-The rack uses the 200 unique effect IDs and 200 unique display names defined in the supplied INSOMNIA.html FX_DEFS list. No display names or IDs are duplicated. Each effect has an enable control and an amount control, with host automation and saved state.
+The rack uses 200 unique effect IDs and display names based on the supplied INSOMNIA.html FX_DEFS list. No native IDs or display names are duplicated. Each effect has an enable control and an amount control, with host automation and saved state. Existing host parameter IDs (`fx0`–`fx199` and `amt0`–`amt199`) are preserved.
 
-The Random FX Pick button first disables all effects, then enables a random set of 1–10 distinct effects. It therefore cannot leave more than 10 effects enabled after a random pick. All Off disables the entire rack.
+The compact category chips and search field filter the rack without changing stable effect indices. Favorites are stored in APVTS state by stable feature ID, appear first in results, and have a dedicated favorites filter. Favorite cards keep a visible `FAV *` marker and gold outline even when unselected. Only the filtered cards are instantiated. `RANDOM FX` chooses 1–10 distinct effects and assigns the stable per-effect values; `RANDOM VALUES` chooses 1–10 with genuinely random amounts; `XTRMRND` chooses 10–20 with random amounts. All Off disables the entire rack.
 
-The native DSP implements a set of effect families (filters, saturation, limiting, delay-style echo, stereo width, modulation, lo-fi, gating, tone shaping, gain and color) and routes each named effect to a family using its ID, with deterministic per-effect variations. This is a native approximation, not a verified one-to-one port of every Web Audio algorithm in INSOMNIA.html. For clean mastering, start with all effects off and add subtle amounts one at a time. The final sample-peak ceiling is a safety guard, not a true-peak limiter or loudness mastering processor.
+The FX Builder is gated by an authenticated DreamShare `plugin_capabilities` response with `fxBuilder: true`. Its two-column workspace separates a virtualized category-filtered module list from the ordered chain. Choosing a module sets the new step's amount; choosing a chain row changes that step's amount. Reorder/remove and preset controls are grouped with the chain. Every current effect has one functional APVTS amount parameter; no extra controls are added without a corresponding DSP parameter. Custom preset IDs, effect IDs, amounts, labels, favorite IDs, and active chain order are stored inside APVTS plugin state, not in external files; host `fxN`/`amtN` parameters and automation IDs are unchanged. Worker requests run on a background thread and marshal replies to the UI thread. Passwords and auth tokens are never serialized into project state; Windows stores the short-lived token in the OS Credential Manager, while unsupported platforms keep it in memory only. The `session` response's optional refreshed token is saved back to the OS store.
+
+All 16 themes in the Worker catalog are listed for authenticated users. The native UI applies relevant color values from the theme pack's `vars` object, and ignores web-only file/scene/veil fields. The GOONR and Trippah themes use restrained native animation while the editor is visible.
+
+Every slot is explicitly assigned a native DSP recipe; there is no substring classifier or hash-derived routing. The recipes reuse stable processing primitives (filters, saturation, dynamics, modulated delay, all-pass phasing, feedback delay, reverb combs, stereo imaging, and rhythmic gating) with deliberately varied timing, tone, depth, and response. Enable/amount ramps, bounded feedback, DC blocking, finite-value guards, and a linked sample-peak limiter improve behavior with arbitrary or stacked inputs. The limiter is not a true-peak limiter or loudness mastering processor.
+
+The CTest target `DreamMasterDSPTests` renders all 200 effects and checks unique IDs/names, non-silent and pairwise-distinct outputs, selected modulation behavior, mono/stereo handling, finite output, and safety bounds at 44.1 and 96 kHz. Automated DSP checks do not substitute for listening in a DAW.
 
 ## Effect names
 
@@ -164,9 +170,9 @@ The native DSP implements a set of effect families (filters, saturation, limitin
 154. Wow II
 155. Flutter
 156. 16th Gate
-157. Reverse Bloom
-158. Oct Down
-159. Oct Up
+157. Shimmer Bloom
+158. Low Ring Mod
+159. High Ring Mod
 160. Resonant
 161. Smear
 162. Dust
