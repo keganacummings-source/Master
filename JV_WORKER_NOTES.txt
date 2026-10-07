@@ -1,0 +1,6 @@
+JV WORKER DEPLOYMENT COPIES
+
+Canonical deployment remains worker.js.
+JV_WORKER.js is an explicitly named compatibility/deployment copy for JV worker packaging.
+JV_MODULE_RULES.js mirrors module-rules.js so the pair can be transferred together when a JV
+worker package is required. Keep worker.js + module-rules.js as the source of truth.

@@ -1,0 +1,10 @@
+KYOTRIPPAH 0.4.2 builder fit
+
+- Modules refit on resize with a gap so new parts do not overlap. Part-slot capacity follows module area.
+- Sliders flip horizontal/vertical from the current module ratio.
+- Undo/remove refit the shell after the change.
+- Editor tab, theme, shell, and window size persist to editor-ui.json and uiState so minimize/reopen restores builder mode.
+- RANDOMIZE rolls a template, always covers Sound, Display, Key, Dial, and stays inside the shell part limit.
+- Right-click a bay: Add > Part or Add > Effect family (Stereo > Haas Width). Right-click a part: Edit Effect (overmax 0-200%, time in beats locked to host BPM) or Remove.
+- DreamShare tab no longer reseeds the motherboard effect if it is already on.
+- Dials/sliders are % attachments. Buttons toggle the slot. Keys are MIDI note on/off. Displays refresh at 30 Hz. Sound is unique and accepts a dropped wav/aiff/flac/mp3/ogg.

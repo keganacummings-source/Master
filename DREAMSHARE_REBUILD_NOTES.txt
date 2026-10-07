@@ -1,0 +1,80 @@
+DREAMSHARE REBUILD - what changed and where
+===========================================
+
+CATALOG FIX (the "approved my own plugin and it vanished" bug)
+- Cause: Plugin Builder publishes plugins with face "chain" (FX Builder publishes "fx"/"effect"), but
+  refreshCatalog() only accepted face == "kyoto" on the PLUGINS tab. Approved plugins were returned by
+  the worker and then thrown away by the client filter.
+  Fix: PLUGINS = everything that is not an effect, EFFECTS = fx/effect. (Source/PluginEditor.cpp, refreshCatalog)
+- Approve / Deny / Tag / Remove now refresh the tab you are on (refreshCurrentCenter). Before, approving from
+  PENDING reloaded the public catalog into the pending view.
+- Public catalog hides pending/denied cards (they stay in MY PLUGINS / PENDING). The builders still receive
+  the full list.
+- Stale replies are ignored, search is debounced (260 ms), empty tabs show a friendly card instead of a blank
+  panel, errors say what failed.
+
+CHAT
+- SocialRail rewritten: bubbles size to their text (word-wrapped, no more clipped 2-liners), your own messages
+  are tinted and tagged "(you)", wider rail, larger text.
+
+READABILITY / ASPECT
+- New kt::dsFont / kt::dsScale (Source/Themes.h). DreamShare text defaults to 112% and has A- / A+ buttons on
+  the home toolbar; the size is remembered (userApplicationData/KyotoSpxrit/dreamshare_ui_scale.txt).
+- Catalog / thread cards re-flow with window width (1-3 columns) and with text size. Open threads are a
+  single readable column where every post is as tall as its text.
+- Cards, hero text, chat and file chips all use the scale. Builders are untouched.
+
+DRAG & DROP FILES
+- Drop a file on the chat column -> staged as a chip above the composer -> SEND posts it in Live Chat.
+- With a thread open, drop on the thread -> staged above the reply bar -> COMMENT attaches it to your comment.
+- Dropping shows a highlighted "DROP TO ..." overlay. Click the chip to remove the staged file.
+- Files appear as clickable FILE chips in chat and threads; click -> Save As dialog -> downloads.
+- Limit 20 MB per file. Audio dropped anywhere outside DreamShare still loads as a sound sample as before.
+- How it works: the file is uploaded in 1.5 MB chunks with the existing worker action audio_part_b64, and the
+  message carries a small token  [[file:<id>:<parts>:<bytes>:<name>]]  (Source/Attach.h). No change to how
+  chat/comments are stored. New worker action file_part reads a chunk back (worker.js + the 3 identical copies).
+- NEEDS: DREAMSHARE_R2 or DREAMSHARE_KV bound on the production worker (same requirement as WAV sharing).
+  Without it the chip stays staged and the status bar says so.
+- Uploaded files are not auto-expired. Deploy the updated worker.js to Cloudflare before testing attachments.
+
+GEEK MODE (Plugin View)
+- Removed the drifting "spot-light" holes. The cover now fades to a ghost so the whole open machine is
+  visible, with a slow scan band, steady part labels, and the hover tooltip with live values.
+
+NOT VERIFIED (no JUCE toolchain / network in the authoring sandbox)
+- Nothing was compiled or run in a DAW. Run the CI build and check: chat bubbles, A-/A+, drag overlay,
+  attach + save round-trip, Geek view. Worker JS passes a syntax check.
+
+
+=====================================================================
+UPDATE 2: CHAINING + 30 TEMPLATES
+=====================================================================
+
+CHAINING (why it was not working)
+- The audio chain runs in DSP-slot order, but new parts always took the first free slot and the wires always
+  showed a star from the motherboard. And the right-click Add menu always placed FX as "dial", so it only worked
+  in Knob bays - in any other bay it silently did nothing.
+- Now: click a part to highlight it, then right-click anywhere and Add. The new part plugs into the highlighted
+  part: it is inserted right after it in the real signal order (later parts slide down the chain), and the wire
+  is drawn from the highlighted part to the new one. Nothing highlighted = joins the end of the chain.
+  The new part becomes highlighted, so you can keep right-clicking to string effects together. Click the empty
+  case to un-highlight. Removing a part re-joins its neighbours. Menu header shows "Adds into: <part>".
+- Right-click does not need to be on a free bay: the nearest free bay that fits is used (knob first, then fader
+  for effects). (Source/PluginEditor.cpp: placeInSlot, chainParentWidget, nearestFreeBay, shiftDspUp, showSlotMenu)
+- Each placed part stores "parent" (the bay it plugs into); saved chains export shellSlot + parent too.
+
+30 TEMPLATES (was 4)
+- Source/PluginShells.h: 30 templates, 6-20 bays each, exactly ONE screen each, every screen a different
+  size/position AND bezel. Checked by script: no overlapping bays, all inside the case, no duplicate screens.
+  TEMPLATE_PREVIEW.png in the zip shows all 30 layouts.
+- The original 4 (console, tower, desk, pocket) keep their ids so saved plugins still open. Pocket Unit grew
+  from 5 to 7 bays; its old unused/overlapping bays were removed.
+- Each template has its own Plugin View design: case silhouette (rounded, chamfer, pill, square, notch, wedge,
+  hex), ears/handles/feet/wings, trim pattern, tint and screen bezel - unique combinations. The builder panel
+  shows the same silhouette, trim and bezel. (paintShellBody / paintScreenBezel in PluginShells.h)
+- Each template also has its own set of internal parts for Geek mode (Source/HardwareInternals.h).
+- Randomize now places each part in a bay that really fits it.
+
+NOT COMPILED HERE either - please run the CI build. Things to eyeball: case shapes vs. corner screws,
+chaining on a fresh plugin (place 3 effects, highlight the first, right-click to add a 4th: it should sit
+second in the chain), and a template with 20 bays (Arcade Cab / Bridge Console / Mega Matrix).

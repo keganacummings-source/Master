@@ -1,0 +1,28 @@
+KYOTRIPPAH / DREAMSHARE WORKER REBUILD — 2026-10-05
+
+Canonical deployment file:
+  worker.js
+
+Kyoto implementation:
+  module-rules.js
+
+What was fixed from the supplied current Worker:
+- Removed the inline duplicate handleKyotoModule implementation.
+- Moved the single handler into module-rules.js and passed its dependencies explicitly; it no longer relies on cross-module globals.
+- Added module_get to the main authenticated Kyoto router.
+- Centralized module_list/module_get/module_publish/module_delete/module_remove/catalog/catalog_delete/community/community_get/community_publish into one routing block.
+- Preserved the existing community_publish fallback for non-Kyoto instrument payloads.
+- Removed the late duplicate Kyoto routing block.
+- list_threads now loads its own feed instead of referencing a feed variable declared later in the action switch.
+- Kyoto catalog face filtering is case-insensitive and community instruments are only merged into unfiltered/kyoto results.
+- module_publish accepts both kyoteppah-module-1 and kyoteppah-effect-1 and preserves up to 16 FX Builder steps and 32 slots.
+- module_get increments catalog download count when an indexed module is loaded.
+- module_delete removes the module index entry, user-module reference, and any matching community-instrument record.
+- Kept compatibility copies for older project references, but worker.js is the only canonical deployment entry point.
+
+Validation:
+- node --check worker.js: PASS
+- node --check module-rules.js: PASS
+- node --check compatibility Worker copies: PASS
+- Kyoto module publish/get/list/delete smoke test: PASS
+- The VST JUCE project was not recompiled here; this change is the Worker/API rebuild.

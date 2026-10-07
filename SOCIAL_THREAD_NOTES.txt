@@ -1,0 +1,16 @@
+KYOTRIPPAH social / viewer finish
+
+Plugin View paints from machineDesign.palette(), the plugin's saved theme, not the signed-in VST theme.
+
+Chat viewport position is restored after home-screen layout. Buttons no longer call setViewedComponent in a way that jumps to the top. A new chat message still follows the latest line.
+
+Socials tab (was Friends / Online):
+- Invites and friends list.
+- Click a name to send a WAV request.
+- Right-click a name for DM, add/remove friend, accept/decline, and admin promote/demote.
+- Admins also see All Active under the friends list.
+- The bottom GO / action popup on the friends rail is gone.
+
+Chat right-click: Add friend, React (heart fire laugh moon 100), admin delete.
+
+Threads open across the center. Comment, react, drop a file name, share a published effect or the last opened plugin. Chat / Socials stay on the left.

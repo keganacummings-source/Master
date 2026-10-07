@@ -1,0 +1,42 @@
+KYOTRIPPAH UI / BUILDER UPDATE
+
+1. Chain and FX Builder now have REMOVE + UNDO controls.
+   - Undo stores complete processor/UI state plus the FX Builder stack.
+   - History is capped at 24 snapshots.
+
+2. Chain placement no longer uses the old selectable grid layouts.
+   - Controls are placed by a deterministic pseudo-random layout.
+   - Placement checks bounds and overlap before adding.
+   - If there is no safe space, ADD is refused and the UI tells the user to move the design into FX Builder.
+   - FX Builder is capped at 16 stages.
+
+3. FX Catalog
+   - Built-in FX are searchable.
+   - CUSTOM tab contains locally saved custom effects plus DreamShare-published effects.
+   - Clicking a DreamShare effect loads it directly into FX Builder.
+   - Downloaded DreamShare effects are also stored locally as reusable presets.
+
+4. Preset shelf
+   - The Chain bottom shelf only lists user/local saved or DreamShare-downloaded chain/effect files.
+   - Starter/demo content is intentionally excluded from that shelf.
+
+5. Custom FX sharing
+   - Published effects receive a DreamShare module id.
+   - FX Builder has CHAT and THREAD share buttons.
+   - Shared messages use [KYOTRIPPAH_EFFECT:<id>] tokens.
+   - Chat and thread views render those tokens as LOAD FX buttons.
+   - Clicking LOAD FX retrieves the effect and opens it in FX Builder.
+
+6. Visual refresh
+   - Replaced the stock FL-looking button treatment with a theme-aware rounded control style.
+   - Reduced UI cramming and separated catalog / surface / inspector responsibilities.
+   - Removed the animated chain wires from the performance surface.
+   - Existing theme palette and theme identities were not changed.
+
+7. Stability
+   - Detached network jobs no longer dereference a destroyed editor: UI callbacks use JUCE SafePointer guards.
+   - Worker syntax checks pass.
+   - C++ source delimiter/brace/parenthesis checks pass.
+
+BUILD NOTE
+A full JUCE build could not be completed in this environment because the project's CMake configuration fetches JUCE from GitHub and outbound DNS/network access is unavailable. The source was statically checked and the Worker files pass node --check.

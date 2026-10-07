@@ -1,0 +1,34 @@
+UPDATE 0.5.0 - THREAD BOARD, NO HIDDEN FX, SCREEN MOTHERBOARDS, THEME DECALS
+NOT COMPILED HERE (no JUCE in the authoring sandbox). Run the CI build first and fix any typo-level errors.
+
+1. DREAMSHARE = THREAD BOARD (Source/DreamBoard.h, new)
+ - Home opens on THREADS. Reddit/4chan style: vote column, thumbnails, badges, NEW / ACTIVE / FILES sort.
+ - + NEW THREAD box: title, text, up to 4 files, one plugin. Open thread: OP + numbered replies (No.123),
+   click No.123 to quote (>>123), lines starting with > are green. Up to 3 files + 1 plugin per reply.
+ - Images show inline (click to expand), zip/audio/other show file chips (click: Save As; audio also
+   "Use as my Sound sample"). Plugins show an OPEN IN BUILDER chip.
+ - Drag & drop: onto the board list = starts a new thread with the files; inside an open thread = attaches
+   to your reply; onto the left chat column = sends in Live Chat (as before).
+ - No Worker schema change: files ride on the existing tokens in Source/Attach.h
+   ([[file:..]] and new [[mod:id:name]]). Needs DREAMSHARE_R2 or KV bound (same as before).
+   Limits: thread text 1000 chars, reply 500 chars, 20 MB per file.
+
+2. NO HIDDEN EFFECTS
+ - Removed the secret tanh "hardware colour" from the processor.
+ - Motherboard no longer seeds a hidden FX into DSP bay 1 (it is forced OFF). Cosmetic parts add nothing.
+ - Modular pieces (Snap/Lens/etc.) are cosmetic skins only: no stepping, no fine-drag.
+ - Only effects the user places make sound. Old saves that relied on the hidden FX will sound drier.
+
+3. MOTHERBOARD = SCREEN
+ - Every template's old SCREEN bay was merged into bay 0, so the motherboard is the screen (live scope).
+ - Right-click the screen -> Change Screen: Plain Glass, Corner Brackets, CRT Tube, Notched Panel,
+   Scanline Monitor, Round Porthole. Saved with the plugin (screenType) and shown in Plugin View.
+ - "Display" part removed from the Add menu (the screen is built in).
+
+4. THEME LAW
+ - Parts, case and Plugin View follow the PLUGIN's theme (playgroundTheme). The signed-in user theme only
+   styles DreamShare. Published plugins now store their own theme; loading a plugin applies it.
+
+5. DECALS (Source/ThemeDecals.h, new)
+ - 13 decal families (stars, flames, tide, petals, circuit, hazard, leaves, snow, arcade, bolts, moon,
+   rivet plates, sun grid) mapped across all 42 themes + a serial sticker naming the theme.

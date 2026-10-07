@@ -1,0 +1,20 @@
+DREAMSHARE HOME / THEME COLOR UPDATE
+
+Home
+- Center surface is the Catalog Browser.
+- Threads are a mode behind the catalog, switched with CATALOG / THREADS tabs. They no longer share the chat log.
+- Live chat is a narrower right rail that stays visible on DreamShare home.
+- Friends / Online is a separate rail tab, not a thread view.
+
+Theme
+- Each of the 42 presets paints its own animated field (scanlines, petals, waves, canopy, solar burst, moon, orbit, arcade ticks).
+- Chat names and message blocks use the sender's saved theme.
+- Thread cards and friend/online rows use that same saved theme.
+- Worker stamps theme on chat, threads, comments, DMs, and presence.
+
+Worker copies
+- worker.js
+- WORKER_DREAMSHARE.js
+- JV_WORKER.js
+- worker/worker.js
+- worker/WORKER_DREAMSHARE.js

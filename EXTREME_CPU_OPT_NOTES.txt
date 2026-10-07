@@ -1,0 +1,48 @@
+KYOTRIPPAH — EXTREME-CONDITION CPU + COMPILE SAFETY (2026-10-06)
+
+Build fixes (CI blockers from logs)
+----------------------------------
+1. PluginEditor.h was missing member declarations for:
+   catalogModeBtn, threadsModeBtn, railChatBtn, railOnlineBtn
+   (used throughout PluginEditor.cpp; caused cascade of undeclared-identifier
+   errors on both Windows MSVC and macOS clang).
+2. PluginEditor.h did not include FxCatalog.h. PluginViewScreen.h is included
+   from the editor header and references kt::kFx / kt::kFxCount, which live in
+   FxCatalog.h. That produced the kFx / kFxCount member-not-found errors.
+
+DSP path under extreme load
+---------------------------
+- Parameters for every slot are still snapshotted once per audio block
+  (not per sample).
+- NEW: rebuildActiveSlots() builds a compact ordered list of only the slots
+  that are ON for this block. processChain() walks that list, so cost is
+  O(active stages) per sample, not O(maxSlots).
+- Early exit when no slots are active (dry signal passes through with no
+  per-slot work).
+- Hard cap: activeSlotCount never exceeds kMaxSlots even if a pathological
+  expansion tried to fill everything.
+- Soft output safety remains tanh-bounded (no hard clip).
+
+Custom / compiled effect safety (anti rabbit-hole)
+--------------------------------------------------
+Custom effects are saved as ordered primitive step lists (FX Builder ≤ 16).
+When a custom effect is PLACED on the main chain it expands only into
+primitive stage types (0 .. kFxCount-1). Nested custom-in-custom is not
+expanded in the DSP path — that is intentional:
+
+  - Prevents exponential stage blow-up when people stack compiled effects
+    made from other compiled effects.
+  - Placement pre-counts free slots and required primitive stages, refuses
+    the placement with a clear status message if there are not enough slots.
+  - Expansion is capped at min(16, slotCount()).
+
+Result: you can still use custom effects heavily, but the live CPU cost stays
+bounded by the fixed slot budget (16 instrument / 32 FX) and the compact
+active-slot walk.
+
+What was not changed
+--------------------
+- Effect family DSP kernels (delay, filter, mod, drive, dynamics) — already
+  single-pass stereo per stage.
+- Delay memory still bounded to ~0.75 s per slot.
+- UI timer rates and worker / DreamShare API surface.

@@ -1,0 +1,37 @@
+KYOTRIPPAH / DREAMSHARE FINAL VALIDATION — 2026-10-05
+
+Implemented in this package:
+- Full View / Plugin View presentation mode with BACK control.
+- New Machine playground selection: 4:5, 1:1, 5:4, FREEFORM.
+- Persistent MachineDesign data for playground dimensions/aspect, theme, body, parts, sockets,
+  snap points, mount points, accepted signal types, connections and macro names.
+- Collision-safe machine randomizer and explicit NEW MACHINE / RANDOMIZE MACHINE controls.
+- Reusable WaveDisplay visualization component using processor scope data at UI timer rate.
+- Deep theme tokens added while preserving existing theme IDs/palettes.
+- MachineDesign travels inside saved/published module payloads.
+- Worker module publishing preserves machineDesign payloads.
+- Canonical worker + compatibility worker copies synchronized, plus JV_WORKER.js / JV_MODULE_RULES.js.
+- Output safety changed from hard digital clipping to a softer bounded safety stage.
+- Existing login session persistence remains token-only; no password is stored.
+- Existing editor close/minimize path does not stop processor audio.
+
+Validation performed:
+- node --check passed for canonical, compatibility and JV worker/rules files.
+- C++ delimiter/brace/parenthesis balance passed for all Source files.
+- New method declaration/definition checks passed.
+- Machine payload serialization sanity check passed.
+- Searched for the previously reported JUCE DynamicObject two-argument getProperty misuse; remaining two-argument calls are ValueTree::getProperty uses, which are valid.
+- Replaced the JUCE 8-incompatible PopupMenu::show() call with PopupMenu::showMenu(PopupMenu::Options().withTargetComponent(...)).
+
+Latest CI blocker addressed:
+- The supplied CI log showed PluginEditor.cpp failing at the machine playground menu because PopupMenu::show() was not a JUCE 8 member; both KYOTO and KYOTRIPPAHFX reported the same failure.
+
+Build limitation:
+- CMake configure was attempted. JUCE 8.0.6 could not be downloaded because this environment
+  cannot resolve github.com. Therefore a native JUCE/VST3 compile could not be executed here.
+  This is an environment/dependency-fetch limitation, not a compiler error from the project.
+
+Deployment:
+- worker.js is the canonical Cloudflare deployment entry point.
+- module-rules.js is its canonical Kyoto module implementation.
+- Compatibility copies are retained for older packaging references.
