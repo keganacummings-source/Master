@@ -1,0 +1,14 @@
+PLUGIN BUILDER
+
+Chain tab is now PLUGIN BUILDER.
+
+Order of work:
+1. Pick the theme first. Every bay, wire, knob, screen and cosmetic follows that theme.
+2. Pick a hardware shell (Console Deck, Tower Rack, Desk Wing, Pocket Unit).
+3. The motherboard is seated automatically in its bay and is the start of the chain.
+4. Choose a part style, choose an effect in the catalog, press PLACE.
+5. Only matching bays glow. Screens only accept screen parts. Knobs only accept knobs. Faders only accept faders. Buttons only accept keys. Vents, badges and rails only accept cosmetic bays.
+6. A wire is drawn from the motherboard to each placed part.
+7. Each shell has a hidden embedded effect on the motherboard bus, kept subtle. Cosmetic parts add a little more of that hardware colour.
+
+Part styles: Knob / Arc, Knob / Pointer, Fader, Slide, Button, Screen, Vent, Badge, Rail.

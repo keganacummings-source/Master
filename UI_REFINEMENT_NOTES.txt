@@ -1,0 +1,25 @@
+KYOTRIPPAH 0.4.1 UI REFINEMENT
+
+TEXT / ARTIFACT CLEANUP
+- Centralized theme typography through Themes.h and kt::font().
+- TextEditor, Label, Button, ComboBox, popup menu, slider popup, FX catalog, WaveDisplay, and CanvasWidget text now use the selected theme family.
+- Chat log is opaque and uses 2x line spacing to avoid cramped glyph overdraw.
+- DreamShare utility dropdown uses human-readable labels instead of raw API identifiers.
+
+THEME SYSTEM
+- Theme registry now contains exactly 42 stable presets.
+- Existing IDs remain stable: modules persist themeFamily/theme IDs instead of raw colours.
+- MachineDesign normalizes module/decals theme IDs through the shared registry.
+- New modular surfaces can use kt::themeById() and kt::font() without inventing their own palette.
+
+UI / NAVIGATION
+- PLUGIN VIEW no longer overlaps the account/status controls and has a dedicated clickable region.
+- Home screen is now a dashboard with a hero/status area, live room, catalog, utility actions, and theme controls.
+- Catalog cards reflow between one and two columns based on available width.
+- Chain builder uses two action rows so controls remain inside the editor at the minimum supported size.
+- Popup menu colours and fonts follow the selected theme.
+
+BUILD VALIDATION
+- Source delimiter balance checked.
+- Worker JavaScript files pass node --check.
+- Full JUCE build was attempted, but this environment cannot resolve github.com, so JUCE 8.0.6 could not be fetched for a compile.

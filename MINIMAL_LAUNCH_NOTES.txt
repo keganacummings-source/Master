@@ -1,0 +1,20 @@
+KYOTRIPPAH minimal-launch finish
+
+Base44 commit 5971567 on branch minimal-launch implemented the approval catalog
+(module_approve, module_deny, module_tag, module_my, module_pending) in
+worker.js and module-rules.js, plus the editor tabs. GitHub Actions run
+37548087976 succeeded for that commit.
+
+Left unfinished by that pass:
+- Compatibility worker copies still routed only the old Kyoto action list,
+  so a deploy of WORKER_DREAMSHARE.js / JV_WORKER.js would drop approve,
+  deny, tag, my-plugins, and pending.
+- JV_MODULE_RULES.js was still the pre-approval rules file.
+- Catalog cards called var::toString() on tag arrays, which draws blank tags.
+
+Finished here:
+- All worker entry copies match worker.js.
+- All module-rules copies match module-rules.js.
+- tagsToText() joins array tags for Plugins, Effects, My Plugins, and Pending.
+- CMake version aligned to 0.4.2.
+- node --check passed on the worker and rules copies.

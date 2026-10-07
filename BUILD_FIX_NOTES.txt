@@ -1,0 +1,33 @@
+KYOTRIPPAH BUILD FIX — 2026-10-05 (CI reopen)
+
+CI log (macOS, PluginEditor.cpp) failed on two errors. Windows job failed in the same editor translation unit.
+
+1. Source/PluginEditor.cpp:731 — no member named accent2 in kt::ThemePalette.
+   ThemePalette only has accent / pegHot. drawThemeField now uses pegHot as the second accent.
+2. Source/PluginEditor.cpp:1584 — ambiguous operator== between const char* (range-for key from a string-literal list) and juce::String.
+   Compared juce::String(key) == "online" instead.
+
+UI cleanup (same editor):
+- Nav wordmark no longer draws a second line into the SHARE button.
+- Login is a centered card with the fields sitting on that card, not a full-bleed empty panel.
+- Home hero subtitle is clipped so it does not run under the LIVE badge.
+- Background sprites reduced from 4 to 2 and drawn smaller so they stay behind the panels.
+
+Worker copies were not changed. JUCE is fetched by CMake and was not available for a local compile here.
+
+---
+
+KYOTRIPPAH BUILD FIX — 2026-10-06 (CI log 101282579103)
+
+Windows + macOS both failed compiling Source/PluginEditor.cpp:
+
+1. Lines 1381–1383 — `const auto prefix = "s01";` deduced as `const char*`.
+   `prefix + "type"` (etc.) is illegal pointer arithmetic / invalid operands.
+   Fixed: `const juce::String prefix = "s01";` so operator+ yields a juce::String
+   parameter ID, matching every other slot-prefix site in the file.
+
+2. Line 1791 — local `int cursor` shadowed `juce::Component::cursor`.
+   Renamed to `pos` to silence C4458 / -Wshadow.
+
+No other compile errors in the CI logs. Remaining items are only float→int
+conversion warnings on drawText coordinates (harmless).

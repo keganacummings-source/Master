@@ -2,6 +2,7 @@
 #include "FeatureNames.h"
 #include "Randomizer.h"
 #include "CustomPresetState.h"
+#include "EffectFavorites.h"
 
 #include <algorithm>
 #include <array>
@@ -294,6 +295,35 @@ void testCustomPresetStateRoundTrip() {
         require(std::abs(restored.steps[i].amount - preset.steps[i].amount) < 1.0e-6f,
                 "custom preset amount did not survive restore");
     }
+
+}
+
+void testFavoriteStateRoundTripAndOrdering() {
+    juce::ValueTree root("PARAMETERS");
+    juce::ValueTree parameter("PARAM");
+    parameter.setProperty("id", "fx0", nullptr);
+    root.addChild(parameter, -1, nullptr);
+    const std::vector<juce::String> favorites{"vortex", "drive", "delay", "not-a-feature"};
+    dm::writeFavoriteEffectIds(root, favorites);
+    const auto xml = root.createXml();
+    require(xml != nullptr, "favorite state did not serialize to XML");
+    const auto restoredRoot = juce::ValueTree::fromXml(*xml);
+    require(restoredRoot.getChildWithName("PARAM").isValid(),
+            "adding favorites removed existing parameter state");
+    const auto restored = dm::readFavoriteEffectIds(restoredRoot);
+    require(restored == std::vector<juce::String>{"vortex", "drive", "delay"},
+            "favorite IDs did not survive state restore or invalid IDs were not ignored");
+
+    const auto sorted = dm::sortEffectsWithFavoritesFirst({0, 1, 2, 35, 34}, restored);
+    require(sorted == std::vector<int>{0, 2, 34, 1, 35},
+            "favorite sorting did not preserve catalog order within favorite and regular groups");
+    const auto mixed = dm::sortEffectsWithFavoritesFirst({4, 0, 2, 34}, restored);
+    require(mixed == std::vector<int>{0, 2, 34, 4},
+            "favorite effects were not moved ahead of regular effects");
+
+    dm::writeFavoriteEffectIds(root, {"delay", "delay", "unknown"});
+    require(dm::readFavoriteEffectIds(root) == std::vector<juce::String>{"delay"},
+            "favorite updates did not remove duplicates and unknown feature IDs");
 }
 }
 
@@ -306,6 +336,7 @@ int main() {
     testSafetyAndMono();
     testRandomizersAndCategories();
     testCustomPresetStateRoundTrip();
-    std::cout << "Validated 200 unique effects, randomizer bounds, effect categories, custom-preset state round trips, DSP behavior, mono/stereo operation, and safety ceiling.\n";
+    testFavoriteStateRoundTripAndOrdering();
+    std::cout << "Validated 200 unique effects, randomizer bounds, effect categories, favorite ordering/state round trips, custom-preset state round trips, DSP behavior, mono/stereo operation, and safety ceiling.\n";
     return 0;
 }

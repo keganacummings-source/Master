@@ -1,0 +1,28 @@
+# Base44 development environment — DreamShare Worker (worker.js)
+# Runs the Cloudflare Worker locally via wrangler dev (local mode: simulated
+# KV binding, no Cloudflare account needed). Live-reloads on worker.js /
+# module-rules.js edits. The VST3 plugins (KYOTO / KYOTRIPPAH FX) are native
+# desktop builds produced by the GitHub Actions workflow, not runnable here.
+services:
+  worker:
+    image: node:22
+    working_dir: /app
+    volumes:
+      - .:/app
+      - npm-cache:/root/.npm
+    command: ["sh", "-ec", "npm install --no-audit --no-fund && exec npx wrangler dev --port 3000 --ip 0.0.0.0"]
+    ports:
+      - "3000:3000"
+    environment:
+      - WRANGLER_SEND_METRICS=false
+      - WRANGLER_LOG=info
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 150s
+    restart: on-failure
+
+volumes:
+  npm-cache:

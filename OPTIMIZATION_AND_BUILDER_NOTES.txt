@@ -1,0 +1,38 @@
+KYOTRIPPAH PERFORMANCE + EFFECT BUILDER UPDATE
+
+Audio performance
+- Removed per-sample AudioProcessorValueTreeState string lookups.
+- Cached raw parameter pointers once during prepare/state restore.
+- Snapshot slot parameters once per audio block instead of loading 7 atomics per sample per slot.
+- Processed stereo FX in one pass per slot instead of calling the slot separately for each channel.
+- Fixed stereo delay write/read advancement.
+- Reduced per-slot delay memory to a bounded 0.75 second buffer.
+- Reused a processor-owned noise generator for the synth instead of requesting the system RNG for every sample.
+- Kept UI animation at 8 Hz.
+
+FX Builder
+- FX Builder now has five deeper controls per effect: Amount + Tone + Motion + Mix + Shape.
+- Control names change by effect family (Time/Feedback, Size/Decay, Rate/Width, Cutoff/Resonance, Drive/Bias, Threshold/Ratio, etc.).
+- Each effect step stores all five values.
+- Saved and remote effects restore all five values.
+- Adding an effect to a chain transfers all five expert values.
+- Added built-in test effects: Velvet Glue, Ghost Corridor, Neon Damage.
+
+Chain utilities
+- Added CHAIN BREAK / parallel branch point.
+- Added MASTER MIX pseudo-module; when placed at the end it controls the complete chain wet/dry amount.
+- Chain presets can contain these utilities.
+- Added RANDOMIZE and CLEAR in the FX Builder.
+
+UI
+- Home/DreamShare page was reorganized toward the DreamShare host-site listening-room layout: left rail, feed room, module shelf, rounded cards and stronger hierarchy.
+- Existing theme palettes and theme IDs were not changed.
+
+Presets
+- Added built-in chain presets: Midnight Bloom, Tape Prayer, Wide Dream.
+- Added built-in effect presets listed above.
+
+Validation
+- C++ source/header brace balance checked.
+- Worker JavaScript syntax checked with node --check.
+- Full JUCE compile was not run in this environment because JUCE is fetched from GitHub by CMake and this environment does not have the JUCE source cached.

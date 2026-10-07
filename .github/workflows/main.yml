@@ -36,7 +36,7 @@ jobs:
             ladspa-sdk libfreetype6-dev libx11-dev libxcomposite-dev \
             libxcursor-dev libxext-dev libxinerama-dev libxrandr-dev \
             libxrender-dev libwebkit2gtk-4.1-dev libglu1-mesa-dev \
-            mesa-common-dev
+            mesa-common-dev libcurl4-openssl-dev
 
       - name: Configure
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release

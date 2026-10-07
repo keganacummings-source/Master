@@ -1,0 +1,14 @@
+KYOTRIPPAH / KyotoSpxrit UI + API UPGRADE
+
+- Reworked the native editor presentation with animated, faint theme-specific background sprites.
+- Chain links now use the active theme accent, glow, and animated signal points.
+- FX Builder now renders a proper themed effect-stack card grid instead of leaving the stack invisible.
+- Catalog cards were enlarged and the admin REMOVE control was added for Trippah/Goonr.
+- Catalog effect loading restores kyoteppah-effect-1 steps into the FX stack.
+- DreamShare utility controls restored in the VST: chat, threads, social/friends, DMs, friend actions, WAV requests, reactions, chat moderation, presence, thread creation and comments.
+- Kyoto worker now accepts/stores both kyoteppah-module-1 and kyoteppah-effect-1, all four faces, steps, generic face filtering, and admin catalog deletion.
+- The Kyoto worker contains the full DreamShare action surface from the supplied API reference; a static action comparison found no API actions missing from the worker.
+- worker/WORKER_DREAMSHARE.js and WORKER_DREAMSHARE.js are synchronized.
+
+BUILD NOTE
+The local environment could not download JUCE 8.0.6 because outbound GitHub DNS/network access is unavailable here, so a full JUCE compile could not be completed in this environment. The Cloudflare worker passes node --check and the project source has balanced braces.
